@@ -3,12 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev --webpack",
     "export": "next export",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint",
-    "biome-write": "npx @biomejs/biome format --write ."
+    "biome-write": "npx @biomejs/biome format --write .",
+    "postinstall": "cp node_modules/.pnpm/@lightprotocol+hasher.rs@0.2.1/node_modules/@lightprotocol/hasher.rs/dist/hasher_wasm_simd_bg.wasm node_modules/.pnpm/@lightprotocol+hasher.rs@0.2.1/node_modules/@lightprotocol/hasher.rs/dist/browser-fat/es/ && cp node_modules/.pnpm/@lightprotocol+hasher.rs@0.2.1/node_modules/@lightprotocol/hasher.rs/dist/light_wasm_hasher_bg.wasm node_modules/.pnpm/@lightprotocol+hasher.rs@0.2.1/node_modules/@lightprotocol/hasher.rs/dist/browser-fat/es/"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",
@@ -25,6 +26,7 @@
     "@solana/web3.js": "^1.98.4",
     "classnames": "^2.5.1",
     "next": "^16.1.1",
+    "privacycash": "^1.1.11",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-icons": "^5.2.1",

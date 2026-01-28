@@ -20,35 +20,25 @@ export function useTokenBalance(
         const fetchBalance = async () => {
             try {
                 // improved Helius RPC selection logic
-                let rpcUrl = 'https://api.devnet.solana.com';
-                const heliusEnvUrl = process.env.NEXT_PUBLIC_HELIUS_RPC_URL;
+                let rpcUrl = network === 'mainnet' ? 'https://api.mainnet-beta.solana.com' : 'https://api.devnet.solana.com';
+                const heliusEnv = process.env.NEXT_PUBLIC_HELIUS_RPC_URL;
 
-                if (heliusEnvUrl) {
-                    try {
-                        const url = new URL(heliusEnvUrl);
-                        const apiKey = url.searchParams.get('api-key');
-                        if (apiKey) {
-                            rpcUrl = `https://${network}.helius-rpc.com/?api-key=${apiKey}`;
-                        } else {
-                            // Fallback: if env var has network in name, use it only if matches, otherwise standard
-                            // This handles cases like direct URLs without query params if they are network specific
-                            if (heliusEnvUrl.includes(network)) {
-                                rpcUrl = heliusEnvUrl;
-                            } else if (network === 'mainnet') {
-                                rpcUrl = 'https://api.mainnet-beta.solana.com';
-                            } else {
-                                rpcUrl = 'https://api.devnet.solana.com';
+                if (heliusEnv) {
+                    if (heliusEnv.startsWith('http')) {
+                        try {
+                            const url = new URL(heliusEnv);
+                            const apiKey = url.searchParams.get('api-key');
+                            if (apiKey) {
+                                rpcUrl = `https://${network}.helius-rpc.com/?api-key=${apiKey}`;
+                            } else if (heliusEnv.includes(network)) {
+                                rpcUrl = heliusEnv;
                             }
+                        } catch (e) {
+                            // ignore URL parse error
                         }
-                    } catch (e) {
-                        // Fallback if URL parsing fails
-                        if (network === 'mainnet') {
-                            rpcUrl = 'https://api.mainnet-beta.solana.com';
-                        }
-                    }
-                } else {
-                    if (network === 'mainnet') {
-                        rpcUrl = 'https://api.mainnet-beta.solana.com';
+                    } else {
+                        // Assume raw API Key
+                        rpcUrl = `https://${network}.helius-rpc.com/?api-key=${heliusEnv}`;
                     }
                 }
 

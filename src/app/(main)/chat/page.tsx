@@ -21,7 +21,7 @@ export default function ChatPage() {
     const [showChat, setShowChat] = useState(false);
     const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
     const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
-    const [network, setNetwork] = useState<'devnet' | 'mainnet'>('devnet');
+    const [network, setNetwork] = useState<'devnet' | 'mainnet'>('mainnet');
 
     // Persistence
     useEffect(() => {
@@ -209,6 +209,7 @@ export default function ChatPage() {
                 onClose={() => setIsGiftModalOpen(false)}
                 onSend={handleSendGift}
                 network={network}
+                recipientAddress={selectedContact?.name || ""}
             />
 
             <AddContactModal

@@ -17,16 +17,22 @@ export const solanaWeb3JsAdapter = new SolanaAdapter({
 
 // 3. Create modal
 const getHeliusUrl = (network: 'devnet' | 'mainnet') => {
-    const heliusEnvUrl = process.env.NEXT_PUBLIC_HELIUS_RPC_URL;
-    if (heliusEnvUrl) {
-        try {
-            const url = new URL(heliusEnvUrl);
-            const apiKey = url.searchParams.get('api-key');
-            if (apiKey) {
-                return `https://${network}.helius-rpc.com/?api-key=${apiKey}`;
+    const heliusEnv = process.env.NEXT_PUBLIC_HELIUS_RPC_URL;
+    if (heliusEnv) {
+        // If it looks like a URL, try to extract param
+        if (heliusEnv.startsWith('http')) {
+            try {
+                const url = new URL(heliusEnv);
+                const apiKey = url.searchParams.get('api-key');
+                if (apiKey) {
+                    return `https://${network}.helius-rpc.com/?api-key=${apiKey}`;
+                }
+            } catch (e) {
+                // ignore
             }
-        } catch (e) {
-            // ignore
+        } else {
+            // Assume it's just the API Key
+            return `https://${network}.helius-rpc.com/?api-key=${heliusEnv}`;
         }
     }
     return network === 'mainnet' ? 'https://api.mainnet-beta.solana.com' : 'https://api.devnet.solana.com';
@@ -99,7 +105,7 @@ export function AppWalletProvider({ children }: { children: ReactNode }) {
     // Ideally this matches the network state, but for context init we can start with one.
     // The WalletProvider internal logic handles network switching via AppKit usually,
     // but standard hooks need a Connection.
-    const endpoint = useMemo(() => getHeliusUrl('devnet'), []);
+    const endpoint = useMemo(() => getHeliusUrl('mainnet'), []);
 
     const wallets = useMemo(() => [
         new PhantomWalletAdapter(),
