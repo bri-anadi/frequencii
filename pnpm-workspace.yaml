@@ -1,4 +1,13 @@
 onlyBuiltDependencies:
   - '@biomejs/biome'
   - '@parcel/watcher'
+  - '@reown/appkit'
+  - '@stellar/stellar-sdk'
+  - bigint-buffer
+  - blake-hash
+  - bufferutil
+  - protobufjs
   - sharp
+  - tiny-secp256k1
+  - usb
+  - utf-8-validate
