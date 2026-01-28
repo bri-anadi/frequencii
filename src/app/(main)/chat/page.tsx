@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { Flex, Text, Column, Button } from "@once-ui-system/core";
-import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
+import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react';
+import { useChatRollup } from './hooks/useChatRollup';
 
 import { ChatSidebar } from "./components/ChatSidebar";
 import { ChatWindow } from "./components/ChatWindow";
@@ -20,11 +21,25 @@ export default function ChatPage() {
     const [showChat, setShowChat] = useState(false);
     const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
     const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
+    const [network, setNetwork] = useState<'devnet' | 'mainnet'>('devnet');
+
+    // Persistence
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const savedNetwork = localStorage.getItem('frequencii_network') as 'devnet' | 'mainnet';
+            if (savedNetwork && (savedNetwork === 'devnet' || savedNetwork === 'mainnet')) {
+                setNetwork(savedNetwork);
+            }
+        }
+    }, []);
 
     // Wallet
     const { open } = useAppKit();
     const { address, isConnected } = useAppKitAccount();
+    const { disconnect } = useDisconnect();
     const isWalletConnected = isConnected;
+
+    const rollup = useChatRollup();
 
     // Responsive Logic
     useEffect(() => {
@@ -43,14 +58,25 @@ export default function ChatPage() {
         setShowChat(true);
     };
 
-    const handleSendMessage = (text: string) => {
+    const handleSendMessage = async (text: string) => {
+        // Optimistic update
         const newMessage = {
             id: Date.now().toString(),
             sender: "me",
             text: text,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         };
-        setMessages([...messages, newMessage]);
+        setMessages(prev => [...prev, newMessage]);
+
+        if (network === 'devnet' && isWalletConnected) {
+            try {
+                await rollup.sendMessage(text);
+                console.log("P2P Message Sent");
+            } catch (e) {
+                console.error("Failed to send P2P message", e);
+                // Optionally mark message as failed in UI
+            }
+        }
     };
 
     const handleSendGift = (amount: string, token: string) => {
@@ -100,6 +126,45 @@ export default function ChatPage() {
                         onOpenAddContact={() => setIsAddContactModalOpen(true)}
                         onConnectWallet={open}
                         publicKeyString={address}
+                        network={network}
+                        onNetworkChange={async (newNetwork) => {
+                            if (isConnected) {
+                                try {
+                                    // Use setTimeout to avoid 'Illegal invocation' issues with event loop
+                                    setTimeout(async () => {
+                                        try {
+                                            await disconnect();
+                                        } catch (e) {
+                                            console.warn("Disconnect error:", e);
+                                        }
+                                    }, 0);
+                                } catch (e) {
+                                    console.warn("Disconnect scheduling failed:", e);
+                                }
+                            }
+                            setNetwork(newNetwork);
+                            if (typeof window !== 'undefined') {
+                                localStorage.setItem('frequencii_network', newNetwork);
+                            }
+                        }}
+                        onDelegate={async () => {
+                            try {
+                                await rollup.delegate();
+                                alert("Delegation request sent!");
+                            } catch (e) {
+                                console.error(e);
+                                alert("Delegation failed. See console.");
+                            }
+                        }}
+                        onUndelegate={async () => {
+                            try {
+                                await rollup.undelegate();
+                                alert("Undelegation request sent!");
+                            } catch (e) {
+                                console.error(e);
+                                alert("Undelegation failed. See console.");
+                            }
+                        }}
                     />
                 )}
 
@@ -143,6 +208,7 @@ export default function ChatPage() {
                 isOpen={isGiftModalOpen}
                 onClose={() => setIsGiftModalOpen(false)}
                 onSend={handleSendGift}
+                network={network}
             />
 
             <AddContactModal

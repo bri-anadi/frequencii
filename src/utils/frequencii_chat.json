@@ -1,0 +1,322 @@
+{
+  "address": "GW1UhbCFrpZVWgjQHY55poLodode4FSpm1ZsNK7ndf4f",
+  "metadata": {
+    "name": "frequencii_chat",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "delegate_chat",
+      "discriminator": [
+        50,
+        211,
+        191,
+        65,
+        208,
+        161,
+        231,
+        189
+      ],
+      "accounts": [
+        {
+          "name": "chat_room",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  104,
+                  97,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "buffer",
+          "writable": true
+        },
+        {
+          "name": "delegation_record",
+          "writable": true
+        },
+        {
+          "name": "delegation_metadata",
+          "writable": true
+        },
+        {
+          "name": "magic_program"
+        },
+        {
+          "name": "program",
+          "address": "GW1UhbCFrpZVWgjQHY55poLodode4FSpm1ZsNK7ndf4f"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "chat_room",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  104,
+                  97,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "process_undelegation",
+      "discriminator": [
+        196,
+        28,
+        41,
+        206,
+        48,
+        37,
+        51,
+        167
+      ],
+      "accounts": [
+        {
+          "name": "base_account",
+          "writable": true
+        },
+        {
+          "name": "buffer"
+        },
+        {
+          "name": "payer",
+          "writable": true
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "account_seeds",
+          "type": {
+            "vec": "bytes"
+          }
+        }
+      ]
+    },
+    {
+      "name": "send_message",
+      "discriminator": [
+        57,
+        40,
+        34,
+        178,
+        189,
+        10,
+        65,
+        26
+      ],
+      "accounts": [
+        {
+          "name": "chat_room",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  104,
+                  97,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "content",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "undelegate_chat",
+      "discriminator": [
+        150,
+        177,
+        226,
+        150,
+        17,
+        196,
+        118,
+        173
+      ],
+      "accounts": [
+        {
+          "name": "chat_room",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  104,
+                  97,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "buffer",
+          "writable": true
+        },
+        {
+          "name": "magic_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "ChatRoom",
+      "discriminator": [
+        168,
+        4,
+        235,
+        36,
+        132,
+        208,
+        36,
+        145
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "MessageSent",
+      "discriminator": [
+        116,
+        70,
+        224,
+        76,
+        128,
+        28,
+        110,
+        55
+      ]
+    }
+  ],
+  "types": [
+    {
+      "name": "ChatRoom",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "message_count",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MessageSent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sender",
+            "type": "pubkey"
+          },
+          {
+            "name": "content",
+            "type": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ]
+}

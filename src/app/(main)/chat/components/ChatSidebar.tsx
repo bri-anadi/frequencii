@@ -19,6 +19,10 @@ interface ChatSidebarProps {
     onOpenAddContact: () => void;
     onConnectWallet: () => void;
     publicKeyString?: string;
+    network: 'devnet' | 'mainnet';
+    onNetworkChange: (network: 'devnet' | 'mainnet') => void;
+    onDelegate: () => void;
+    onUndelegate: () => void;
 }
 
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({
@@ -30,6 +34,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     onOpenAddContact,
     onConnectWallet,
     publicKeyString,
+    network,
+    onNetworkChange,
+    onDelegate,
+    onUndelegate,
 }) => {
     const [searchQuery, setSearchQuery] = useState("");
 
@@ -102,12 +110,39 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 <Button
                     fillWidth
                     variant={isWalletConnected ? "secondary" : "primary"}
-                    onClick={onConnectWallet}
+                    onClick={() => onConnectWallet()}
                 >
                     {isWalletConnected && publicKeyString
                         ? formatContactName(publicKeyString)
                         : "Connect Wallet"}
                 </Button>
+
+                <Row
+                    fillWidth
+                    background="neutral-medium"
+                    radius="m"
+                    padding="2"
+                    gap="2"
+                    vertical="center"
+                    style={{ marginTop: '8px' }}
+                >
+                    <Button
+                        fillWidth
+                        variant={network === 'devnet' ? 'primary' : 'tertiary'}
+                        size="s"
+                        onClick={() => onNetworkChange('devnet')}
+                    >
+                        Devnet
+                    </Button>
+                    <Button
+                        fillWidth
+                        variant={network === 'mainnet' ? 'primary' : 'tertiary'}
+                        size="s"
+                        onClick={() => onNetworkChange('mainnet')}
+                    >
+                        Mainnet
+                    </Button>
+                </Row>
             </Column>
         </Column>
     );

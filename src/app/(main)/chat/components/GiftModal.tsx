@@ -15,9 +15,10 @@ interface GiftModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSend: (amount: string, token: string) => void;
+    network: 'devnet' | 'mainnet';
 }
 
-export const GiftModal: React.FC<GiftModalProps> = ({ isOpen, onClose, onSend }) => {
+export const GiftModal: React.FC<GiftModalProps> = ({ isOpen, onClose, onSend, network }) => {
     const [giftAmount, setGiftAmount] = useState("");
     const [giftToken, setGiftToken] = useState("SOL");
     const [giftError, setGiftError] = useState("");
@@ -28,7 +29,8 @@ export const GiftModal: React.FC<GiftModalProps> = ({ isOpen, onClose, onSend })
         address || null,
         giftToken,
         isConnected,
-        isOpen
+        isOpen,
+        network
     );
 
     const handleSendGift = () => {
