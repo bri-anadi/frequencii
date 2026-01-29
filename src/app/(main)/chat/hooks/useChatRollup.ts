@@ -12,7 +12,6 @@ import {
     delegationRecordPdaFromDelegatedAccount,
     delegationMetadataPdaFromDelegatedAccount,
     DELEGATION_PROGRAM_ID,
-    MAGIC_PROGRAM_ID,
 } from "@magicblock-labs/ephemeral-rollups-sdk";
 import { useCallback, useMemo } from 'react';
 
