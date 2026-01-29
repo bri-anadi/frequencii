@@ -31,7 +31,10 @@
                   99,
                   104,
                   97,
-                  116
+                  116,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -96,7 +99,10 @@
                   99,
                   104,
                   97,
-                  116
+                  116,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -179,7 +185,10 @@
                   99,
                   104,
                   97,
-                  116
+                  116,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -225,7 +234,10 @@
                   99,
                   104,
                   97,
-                  116
+                  116,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -287,6 +299,26 @@
   ],
   "types": [
     {
+      "name": "ChatMessage",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sender",
+            "type": "pubkey"
+          },
+          {
+            "name": "content",
+            "type": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "ChatRoom",
       "type": {
         "kind": "struct",
@@ -294,6 +326,16 @@
           {
             "name": "message_count",
             "type": "u64"
+          },
+          {
+            "name": "messages",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ChatMessage"
+                }
+              }
+            }
           }
         ]
       }

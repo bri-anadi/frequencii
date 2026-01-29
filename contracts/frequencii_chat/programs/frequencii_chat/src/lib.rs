@@ -12,6 +12,7 @@ pub mod frequencii_chat {
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         let chat_room = &mut ctx.accounts.chat_room;
         chat_room.message_count = 0;
+        chat_room.messages = Vec::new();
         Ok(())
     }
 
@@ -19,6 +20,19 @@ pub mod frequencii_chat {
         let chat_room = &mut ctx.accounts.chat_room;
         chat_room.message_count += 1;
 
+        let message = ChatMessage {
+            sender: ctx.accounts.user.key(),
+            content: content.clone(),
+            timestamp: Clock::get()?.unix_timestamp,
+        };
+
+        // Add message to storage
+        if chat_room.messages.len() >= 20 {
+            chat_room.messages.remove(0); // Remove oldest
+        }
+        chat_room.messages.push(message);
+
+        // Keep event for external listeners if any
         emit!(MessageSent {
             sender: ctx.accounts.user.key(),
             content,
@@ -29,7 +43,7 @@ pub mod frequencii_chat {
     }
 
     pub fn delegate_chat(ctx: Context<DelegateChat>) -> Result<()> {
-        let pda_seeds: &[&[u8]] = &[b"chat", ctx.accounts.user.key.as_ref()];
+        let pda_seeds: &[&[u8]] = &[b"chat_v2", ctx.accounts.user.key.as_ref()];
 
         let accounts = DelegateAccounts {
             payer: &ctx.accounts.user.to_account_info(),
@@ -48,7 +62,7 @@ pub mod frequencii_chat {
     }
 
     pub fn undelegate_chat(ctx: Context<UndelegateChat>) -> Result<()> {
-        let pda_seeds: &[&[u8]] = &[b"chat", ctx.accounts.user.key.as_ref()];
+        let pda_seeds: &[&[u8]] = &[b"chat_v2", ctx.accounts.user.key.as_ref()];
         let pda_seeds_vec: Vec<Vec<u8>> = pda_seeds.iter().map(|s| s.to_vec()).collect();
 
         undelegate_account(
@@ -59,13 +73,21 @@ pub mod frequencii_chat {
             &ctx.accounts.system_program.to_account_info(),
             pda_seeds_vec,
         )?;
-       Ok(())
+        Ok(())
     }
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]
+pub struct ChatMessage {
+    pub sender: Pubkey,
+    pub content: String,
+    pub timestamp: i64,
 }
 
 #[account]
 pub struct ChatRoom {
     pub message_count: u64,
+    pub messages: Vec<ChatMessage>,
 }
 
 #[event]
@@ -80,8 +102,8 @@ pub struct Initialize<'info> {
     #[account(
         init,
         payer = user,
-        space = 8 + 8 + 32,
-        seeds = [b"chat", user.key().as_ref()],
+        space = 8 + 8 + 4 + (20 * (32 + 4 + 256 + 8)), // Approx 6KB -> use 7000 for safety (Limit 10240)
+        seeds = [b"chat_v2", user.key().as_ref()],
         bump
     )]
     pub chat_room: Account<'info, ChatRoom>,
@@ -94,7 +116,7 @@ pub struct Initialize<'info> {
 pub struct SendMessage<'info> {
     #[account(
         mut,
-        seeds = [b"chat", user.key().as_ref()],
+        seeds = [b"chat_v2", user.key().as_ref()],
         bump
     )]
     pub chat_room: Account<'info, ChatRoom>,
@@ -105,7 +127,7 @@ pub struct SendMessage<'info> {
 pub struct DelegateChat<'info> {
     #[account(
         mut,
-        seeds = [b"chat", user.key().as_ref()],
+        seeds = [b"chat_v2", user.key().as_ref()],
         bump
     )]
     pub chat_room: Account<'info, ChatRoom>,
@@ -132,7 +154,7 @@ pub struct DelegateChat<'info> {
 pub struct UndelegateChat<'info> {
     #[account(
         mut,
-        seeds = [b"chat", user.key().as_ref()],
+        seeds = [b"chat_v2", user.key().as_ref()],
         bump
     )]
     pub chat_room: Account<'info, ChatRoom>,

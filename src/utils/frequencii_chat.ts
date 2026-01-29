@@ -37,7 +37,10 @@ export type FrequenciiChat = {
                   99,
                   104,
                   97,
-                  116
+                  116,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -102,7 +105,10 @@ export type FrequenciiChat = {
                   99,
                   104,
                   97,
-                  116
+                  116,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -185,7 +191,10 @@ export type FrequenciiChat = {
                   99,
                   104,
                   97,
-                  116
+                  116,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -231,7 +240,10 @@ export type FrequenciiChat = {
                   99,
                   104,
                   97,
-                  116
+                  116,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -293,6 +305,26 @@ export type FrequenciiChat = {
   ],
   "types": [
     {
+      "name": "chatMessage",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sender",
+            "type": "pubkey"
+          },
+          {
+            "name": "content",
+            "type": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "chatRoom",
       "type": {
         "kind": "struct",
@@ -300,6 +332,16 @@ export type FrequenciiChat = {
           {
             "name": "messageCount",
             "type": "u64"
+          },
+          {
+            "name": "messages",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "chatMessage"
+                }
+              }
+            }
           }
         ]
       }

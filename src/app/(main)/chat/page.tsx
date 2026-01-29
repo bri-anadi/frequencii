@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import { Flex, Text, Column, Button } from "@once-ui-system/core";
 import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react';
 import { useChatRollup } from './hooks/useChatRollup';
+import { useChatListener, ChatMessageEvent } from './hooks/useChatListener';
+import { useCallback } from 'react';
 
 import { ChatSidebar } from "./components/ChatSidebar";
 import { ChatWindow } from "./components/ChatWindow";
@@ -16,6 +18,7 @@ export default function ChatPage() {
     const [contacts, setContacts] = useState<any[]>([]);
     const [selectedContact, setSelectedContact] = useState<any>(null);
 
+    // ... (keep existing state)
     // UI State
     const [isMobile, setIsMobile] = useState(false);
     const [showChat, setShowChat] = useState(false);
@@ -30,8 +33,22 @@ export default function ChatPage() {
             if (savedNetwork && (savedNetwork === 'devnet' || savedNetwork === 'mainnet')) {
                 setNetwork(savedNetwork);
             }
+            // Load contacts
+            const savedContacts = localStorage.getItem('frequencii_contacts');
+            if (savedContacts) {
+                try {
+                    setContacts(JSON.parse(savedContacts));
+                } catch (e) { console.error("Failed to load contacts", e); }
+            }
         }
     }, []);
+
+    // Save contacts on change
+    useEffect(() => {
+        if (typeof window !== 'undefined' && contacts.length > 0) {
+            localStorage.setItem('frequencii_contacts', JSON.stringify(contacts));
+        }
+    }, [contacts]);
 
     // Wallet
     const { open } = useAppKit();
@@ -40,6 +57,34 @@ export default function ChatPage() {
     const isWalletConnected = isConnected;
 
     const rollup = useChatRollup();
+
+    // Listener
+    const handleIncomingMessage = useCallback((event: ChatMessageEvent) => {
+        const senderStr = event.sender.toBase58();
+        console.log("Incoming message from:", senderStr);
+
+        // Check availability of 'address' from wallet
+        // Removed check to allow reading messages even if wallet not fully synced yet
+        // if (!address) return;
+
+        // Avoid duplicating own messages (handled optimistically)
+        if (senderStr === address) return;
+
+        const newMessage = {
+            id: `${senderStr}-${event.timestamp}-${Math.random()}`, // unique-ish ID
+            sender: senderStr, // or mapped name
+            text: event.content,
+            timestamp: new Date(event.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+
+        setMessages(prev => {
+            // Simple duplicate check just in case
+            if (prev.some(m => m.id === newMessage.id)) return prev;
+            return [...prev, newMessage];
+        });
+    }, [address]);
+
+    useChatListener(contacts, handleIncomingMessage);
 
     // Responsive Logic
     useEffect(() => {
@@ -95,7 +140,7 @@ export default function ChatPage() {
         setIsGiftModalOpen(false);
     };
 
-    const handleAddContact = (newAddress: string) => {
+    const handleAddContact = async (newAddress: string) => {
         const newContact = {
             id: Date.now().toString(),
             name: newAddress, // Using address as name for now
@@ -109,6 +154,17 @@ export default function ChatPage() {
         // Automatically select the new contact if none selected
         if (!selectedContact) {
             setSelectedContact(newContact);
+        }
+
+        // Auto-delegate on add contact to ensure readiness
+        if (isWalletConnected && network === 'devnet') {
+            try {
+                console.log("Auto-triggering delegation on contact add...");
+                await rollup.delegate();
+                console.log("Auto-delegation check complete.");
+            } catch (e) {
+                console.warn("Auto-delegation failed (non-critical if already handled):", e);
+            }
         }
     };
 
@@ -145,6 +201,7 @@ export default function ChatPage() {
                             setNetwork(newNetwork);
                             if (typeof window !== 'undefined') {
                                 localStorage.setItem('frequencii_network', newNetwork);
+                                window.location.reload();
                             }
                         }}
                         onDelegate={async () => {

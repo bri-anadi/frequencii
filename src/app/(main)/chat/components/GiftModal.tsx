@@ -162,7 +162,7 @@ export const GiftModal: React.FC<GiftModalProps> = ({ isOpen, onClose, onSend, n
                 gap="l"
                 style={{ width: '400px', maxWidth: '90vw' }}
             >
-                <Text variant="heading-strong-m">Send Private Gift (PrivacyCash)</Text>
+                <Text variant="heading-strong-m">Send Private Gift</Text>
 
                 <Column gap="s">
                     <Flex fillWidth style={{ justifyContent: 'space-between' }}>

@@ -105,7 +105,13 @@ export function AppWalletProvider({ children }: { children: ReactNode }) {
     // Ideally this matches the network state, but for context init we can start with one.
     // The WalletProvider internal logic handles network switching via AppKit usually,
     // but standard hooks need a Connection.
-    const endpoint = useMemo(() => getHeliusUrl('mainnet'), []);
+    const endpoint = useMemo(() => {
+        if (typeof window !== 'undefined') {
+            const stored = localStorage.getItem('frequencii_network');
+            if (stored === 'mainnet') return getHeliusUrl('mainnet');
+        }
+        return getHeliusUrl('devnet');
+    }, []);
 
     const wallets = useMemo(() => [
         new PhantomWalletAdapter(),

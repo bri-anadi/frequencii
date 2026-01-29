@@ -8,6 +8,7 @@ import { baseURL, meta, fonts, style, dataStyle } from "@/resources/once-ui.conf
 import { Meta, Schema, Column, Flex, Mask, MatrixFx } from "@once-ui-system/core";
 import { Providers } from '@/components/Providers';
 import { AppWalletProvider } from '@/components/WalletProvider';
+import { MagicBlockProvider } from '@/components/MagicBlockProvider';
 
 export async function generateMetadata() {
   return Meta.generate({
@@ -109,20 +110,22 @@ export default function RootLayout({
       </head>
       <Providers>
         <AppWalletProvider>
-          <Column as="body" background="page" fillWidth margin="0" padding="0">
-            <Column style={{ maxHeight: "100dvh" }} fillWidth aspectRatio="1" horizontal="center" position="absolute" top="0" left="0">
-              <Mask maxWidth="m" x={50} y={0} radius={50}>
-                <MatrixFx
-                  size={1.5}
-                  spacing={5}
-                  fps={24}
-                  colors={["brand-solid-strong"]}
-                  flicker
-                />
-              </Mask>
+          <MagicBlockProvider>
+            <Column as="body" background="page" fillWidth margin="0" padding="0">
+              <Column style={{ maxHeight: "100dvh" }} fillWidth aspectRatio="1" horizontal="center" position="absolute" top="0" left="0">
+                <Mask maxWidth="m" x={50} y={0} radius={50}>
+                  <MatrixFx
+                    size={1.5}
+                    spacing={5}
+                    fps={24}
+                    colors={["brand-solid-strong"]}
+                    flicker
+                  />
+                </Mask>
+              </Column>
+              {children}
             </Column>
-            {children}
-          </Column>
+          </MagicBlockProvider>
         </AppWalletProvider>
       </Providers>
     </Flex>
