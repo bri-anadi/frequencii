@@ -5,6 +5,7 @@ import {
     Text,
     Input,
     Button,
+    IconButton,
     Scroller,
     StatusIndicator,
 } from "@once-ui-system/core";
@@ -40,10 +41,19 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     onUndelegate,
 }) => {
     const [searchQuery, setSearchQuery] = useState("");
+    const [isCopied, setIsCopied] = useState(false);
 
     const filteredContacts = contacts.filter(contact =>
         contact.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    const handleCopy = () => {
+        if (publicKeyString) {
+            navigator.clipboard.writeText(publicKeyString);
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 2000);
+        }
+    };
 
     return (
         <Column
@@ -107,15 +117,27 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         Add Contact
                     </Button>
                 )}
-                <Button
-                    fillWidth
-                    variant={isWalletConnected ? "secondary" : "primary"}
-                    onClick={() => onConnectWallet()}
-                >
-                    {isWalletConnected && publicKeyString
-                        ? formatContactName(publicKeyString)
-                        : "Connect Wallet"}
-                </Button>
+                <Row gap="xs" fillWidth>
+                    <Button
+                        fillWidth
+                        variant={isWalletConnected ? "secondary" : "primary"}
+                        onClick={() => onConnectWallet()}
+                    >
+                        {isWalletConnected && publicKeyString
+                            ? formatContactName(publicKeyString)
+                            : "Connect Wallet"}
+                    </Button>
+
+                    {isWalletConnected && publicKeyString && (
+                        <IconButton
+                            variant="secondary"
+                            onClick={handleCopy}
+                            size="l"
+                            icon={isCopied ? "check" : "clipboard"}
+                            tooltip={isCopied ? "Copied!" : "Copy Address"}
+                        />
+                    )}
+                </Row>
 
                 <Row
                     fillWidth
