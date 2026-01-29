@@ -11,6 +11,9 @@ importers:
       '@coral-xyz/anchor':
         specifier: ^0.32.1
         version: 0.32.1(bufferutil@4.1.0)(typescript@5.8.2)(utf-8-validate@5.0.10)
+      '@lightprotocol/hasher.rs':
+        specifier: 0.2.1
+        version: 0.2.1
       '@magicblock-labs/ephemeral-rollups-kit':
         specifier: ^0.8.4
         version: 0.8.4(fastestsmallesttextencoderdecoder@1.0.22)(ws@8.19.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))

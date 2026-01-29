@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",
+    "@lightprotocol/hasher.rs": "0.2.1",
     "@magicblock-labs/ephemeral-rollups-kit": "^0.8.4",
     "@magicblock-labs/ephemeral-rollups-sdk": "^0.8.4",
     "@once-ui-system/core": "latest",

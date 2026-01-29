@@ -1,6 +1,9 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useConnection, useAnchorWallet } from '@solana/wallet-adapter-react';
 import { useAppKitProvider } from '@reown/appkit/react';
+import { PublicKey } from '@solana/web3.js';
+// @ts-ignore
+import { WasmFactory } from '@lightprotocol/hasher.rs';
 
 export const usePrivacyCash = () => {
     const { connection } = useConnection();
@@ -11,6 +14,7 @@ export const usePrivacyCash = () => {
     const [isSigned, setIsSigned] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [sdk, setSdk] = useState<any>(null);
+    const [lightWasm, setLightWasm] = useState<any>(null);
     // Store encryption service instance that has keys set
     const [activeEncryptionService, setActiveEncryptionService] = useState<any>(null);
 
@@ -20,15 +24,26 @@ export const usePrivacyCash = () => {
 
         const loadSdk = async () => {
             try {
+                // Initialize Light Protocol WASM
+                const wasm = await WasmFactory.getInstance();
+                console.log("LightWasm initialized:", wasm);
+                // Check if poseidonHashString exists on the loaded object
+                if (wasm && typeof wasm.poseidonHashString !== 'function') {
+                    console.error("CRITICAL: poseidonHashString IS MISSING on lightWasm object", wasm);
+                } else {
+                    console.log("LightWasm appears valid, has poseidonHashString");
+                }
+
                 // Dynamic import from the utils endpoint which exposes standalone functions
                 const privacyCashUtils = await import('privacycash/utils');
 
                 // We store the whole module or specific functions
                 if (isMounted) {
+                    setLightWasm(wasm);
                     setSdk(privacyCashUtils);
                 }
             } catch (e) {
-                console.error("Failed to load PrivacyCash SDK Utils:", e);
+                console.error("Failed to load PrivacyCash SDK Utils or WASM:", e);
             }
         };
 
@@ -77,9 +92,6 @@ export const usePrivacyCash = () => {
             setIsSigned(true);
 
             // Now we can fetch balance safely
-            // fetchBalance logic moved here or called separately?
-            // Calling direct because 'activeEncryptionService' state update might be async
-            // and we have the instance reference right now.
             await fetchBalanceInternal(encryptionService);
 
         } catch (e) {
@@ -91,7 +103,7 @@ export const usePrivacyCash = () => {
 
     // Separated fetch logic to accept service instance directly
     const fetchBalanceInternal = async (encService: any) => {
-        if (!sdk || !rawProvider || !encService) return;
+        if (!sdk || !rawProvider || !encService || !lightWasm) return;
         try {
             const userPublicKey = rawProvider.publicKey;
 
@@ -122,37 +134,29 @@ export const usePrivacyCash = () => {
         if (activeEncryptionService) {
             await fetchBalanceInternal(activeEncryptionService);
         }
-    }, [activeEncryptionService, sdk, rawProvider, connection]);
+    }, [activeEncryptionService, sdk, rawProvider, connection, lightWasm]);
 
     const deposit = useCallback(async (amountSol: number) => {
-        if (!rawProvider || !sdk || !activeEncryptionService) return;
+        if (!rawProvider || !sdk || !activeEncryptionService || !lightWasm) return;
         try {
             setIsLoading(true);
             const lamports = amountSol * 1e9;
 
             // We need a transactionSigner wrapper for the SDK
-            // SDK expects: async (tx) => { tx.sign([keypair]); return tx; }
-            //Frontend expects: async (tx) => { return wallet.signTransaction(tx); }
-
             const frontendSigner = async (tx: any) => {
                 // Ensure recent blockhash if missing (SDK might handle it)
                 return await rawProvider.signTransaction(tx);
             };
 
             const tx = await sdk.deposit({
-                // SDK Deposit requires:
-                // lightWasm (optional/internal?), amount_in_lamports, connection, encryptionService, publicKey, transactionSigner, storage
-
-                amount_in_lamports: lamports, // Check naming in deposit.js!
-                // Wait, checking index.js calling code:
-                // deposit({ lightWasm, amount_in_lamports: lamports, ... })
-                // It seems the params are indeed 'amount_in_lamports'
-
+                lightWasm: lightWasm,
+                amount_in_lamports: lamports,
                 connection: connection,
                 encryptionService: activeEncryptionService,
                 publicKey: rawProvider.publicKey,
                 transactionSigner: frontendSigner,
-                storage: window.localStorage
+                storage: window.localStorage,
+                keyBasePath: '/circuit2/transaction2'
             });
 
             await fetchBalance();
@@ -163,30 +167,23 @@ export const usePrivacyCash = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [rawProvider, connection, sdk, activeEncryptionService, fetchBalance]);
+    }, [rawProvider, connection, sdk, activeEncryptionService, fetchBalance, lightWasm]);
 
     const withdraw = useCallback(async (amountSol: number, recipient: string) => {
-        if (!rawProvider || !sdk || !activeEncryptionService) return;
+        if (!rawProvider || !sdk || !activeEncryptionService || !lightWasm) return;
         try {
             setIsLoading(true);
             const lamports = amountSol * 1e9;
 
             const tx = await sdk.withdraw({
+                lightWasm: lightWasm,
                 amount_in_lamports: lamports,
                 connection: connection,
                 encryptionService: activeEncryptionService,
                 publicKey: rawProvider.publicKey,
-                recipient: new sdk.PublicKey(recipient), // Convert string to PK if needed
-                // transactionSigner might not be needed for withdraw strictly unless paying fees?
-                // Actually withdraw usually requires proving ownership (signatures)
-                // SDK withdraw definition in index.js doesnt explicitly show transactionSigner param passing to `withdraw` function?
-                // Let's check index.js line 131:
-                // await withdraw({ ..., publicKey, recipient, keyBasePath..., storage, referrer })
-                // It does NOT invoke a signer. The proof generation (ZK) proves ownership.
-                // Wait, who pays the TX fee? The relayer? or the user?
-                // Usually user needs to sign the container TX.
-
-                storage: window.localStorage
+                recipient: new PublicKey(recipient),
+                storage: window.localStorage,
+                keyBasePath: '/circuit2/transaction2'
             });
 
             await fetchBalance();
@@ -197,7 +194,7 @@ export const usePrivacyCash = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [rawProvider, connection, sdk, activeEncryptionService, fetchBalance]);
+    }, [rawProvider, connection, sdk, activeEncryptionService, fetchBalance, lightWasm]);
 
     return {
         privateBalance,

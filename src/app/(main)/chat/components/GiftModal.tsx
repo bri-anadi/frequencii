@@ -84,42 +84,57 @@ export const GiftModal: React.FC<GiftModalProps> = ({ isOpen, onClose, onSend, n
 
             setTxnStatus("Processing...");
 
-            // Check if we need to deposit first
-            // Note: privateBalance is in lamports (1e9), amount is in SOL
-            const amountLamports = amount * 1e9;
-            const currentPrivateLamports = pBalance || 0;
+            // Fee constants
+            const WITHDRAW_FEE_SOL = 0.007; // 0.006 fixed + 0.001 buffer for rent/variation
+            const MIN_NET_WITHDRAW_SOL = 0.01;
 
-            // 0.05 SOL Buffer for fees (relayer fees can be high)
-            const feeBuffer = 0.01 * 1e9;
+            // Check if amount meets minimum net requirement
+            // If we treat input 'amount' as what user wants recipient to get (Net),
+            // then we should ensure they are at least sending the minimum.
+            // However, assuming amount is what the user inputs:
+            // We'll treat Input as NET (User wants recipient to receive X)
+            // So we send X + Fee.
 
-            if (currentPrivateLamports < (amountLamports + feeBuffer)) {
-                // Need top up
-                const topUpSol = amount - (currentPrivateLamports / 1e9) + 0.02; // +buffer
-                // Or simple logic: just deposit the full amount if balance is low?
-                // Let's explicitly deposit strictly what is needed plus buffer
-                // Or simpler: Just deposit 'amount' if balance is close to 0
-
-                // Simpler reliable flow:
-                // If balance < amount, deposit 'amount' (ignoring existing small dust)
-                // Or deposit difference.
-
-                let depositAmount = 0;
-                if (currentPrivateLamports < amountLamports) {
-                    depositAmount = amount - (currentPrivateLamports / 1e9) + 0.012; // cover fees
-                    // ensure positive
-                    if (depositAmount < 0.01) depositAmount = 0.01;
-                }
-
-                if (depositAmount > 0) {
-                    setTxnStatus(`Depositing ${depositAmount.toFixed(4)} SOL...`);
-                    await deposit(depositAmount);
-                }
-                // Re-fetch balance happens automatically in hook but might delay?
-                // logic proceeds to withdraw hoping balance is updated or using optimism
+            if (amount < MIN_NET_WITHDRAW_SOL) {
+                setGiftError(`Minimum gift amount is ${MIN_NET_WITHDRAW_SOL} SOL`);
+                setTxnStatus("");
+                return;
             }
 
-            setTxnStatus("Sending Private Gift...");
-            const txHash = await withdraw(amount, recipientAddress);
+            const grossAmountSol = amount + WITHDRAW_FEE_SOL;
+            const grossAmountLamports = Math.floor(grossAmountSol * 1e9);
+            const currentPrivateLamports = pBalance || 0;
+
+            console.log(`Privacy Check: Balance=${currentPrivateLamports / 1e9}, Needed=${grossAmountSol}`);
+
+            if (currentPrivateLamports < grossAmountLamports) {
+                const deficitLamports = grossAmountLamports - currentPrivateLamports;
+                const deficitSol = deficitLamports / 1e9;
+
+                // Add a small safety buffer for the deposit transaction itself or slight variations
+                let depositAmount = deficitSol + 0.002;
+
+                // Ensure reasonable minimum deposit
+                if (depositAmount < 0.01) depositAmount = 0.01;
+
+                setTxnStatus(`Insufficient private balance. Auto-depositing ${depositAmount.toFixed(4)} SOL...`);
+
+                try {
+                    await deposit(depositAmount);
+                    setTxnStatus("Deposit successful. Proceeding to gift...");
+                    // Wait a bit for state to possibly update, though we proceed optimistically
+                    await new Promise(r => setTimeout(r, 1000));
+                } catch (err: any) {
+                    throw new Error(`Auto-deposit failed: ${err.message}`);
+                }
+            }
+
+            // Pass the GROSS amount to withdraw, so that after fee deduction,
+            // the recipient receives roughly the original 'amount'
+            setTxnStatus(`Sending ${amount} SOL (Private)...`);
+            // Note: withdraw expects amount in SOL. We pass gross amount.
+            // SDK: amount_in_lamports - fee
+            const txHash = await withdraw(grossAmountSol, recipientAddress);
 
             console.log("Private Transfer complete:", txHash);
 

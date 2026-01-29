@@ -1,8 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useMemo } from 'react';
 import { ConnectionMagicRouter } from '@magicblock-labs/ephemeral-rollups-sdk';
-import { useConnection } from '@solana/wallet-adapter-react';
 
 interface MagicBlockContextType {
     magicRouter: ConnectionMagicRouter | null;
