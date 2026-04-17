@@ -61,7 +61,28 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({
       border="neutral-alpha-medium"
       radius="l"
       background="neutral-weak"
+      style={{ overflow: "hidden" }}
     >
+      {/* Banner Image */}
+      {event.image && (
+        <div style={{ 
+          width: '100%', 
+          height: '140px', 
+          borderRadius: '8px',
+          overflow: 'hidden',
+          marginBottom: '8px'
+        }}>
+          <img 
+            src={event.image} 
+            alt={event.title} 
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }} 
+          />
+        </div>
+      )}
+
       {/* Header */}
       <Row fillWidth vertical="center" style={{ justifyContent: "space-between" }}>
         <Text variant="heading-strong-s" style={{ maxWidth: "85%" }}>

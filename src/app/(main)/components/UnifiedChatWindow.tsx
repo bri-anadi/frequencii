@@ -11,6 +11,9 @@ import {
 } from "@once-ui-system/core";
 import { formatContactName } from "@/lib/chatUtils";
 import type { UnifiedMessage, PredictionEvent } from "@/lib/types";
+import { MarketCard } from "./MarketCard";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface UnifiedChatWindowProps {
     isMobile: boolean;
@@ -35,8 +38,6 @@ const QUICK_ACTIONS = [
     { label: "Compare with similar markets", requiresMarket: true },
 ];
 
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 
 /**
  * Custom components for rendering Markdown aligned with Once UI
@@ -212,19 +213,15 @@ export const UnifiedChatWindow: React.FC<UnifiedChatWindowProps> = ({
                                                 <Column gap="xs" fillWidth paddingY="s">
                                                     <Text variant="label-strong-s" onBackground="neutral-weak">Top Trending Markets</Text>
                                                     {trendingMarkets.map(market => (
-                                                        <Button 
-                                                            key={market.id} 
-                                                            variant="secondary" 
-                                                            size="s" 
+                                                        <MarketCard 
+                                                            key={market.id}
+                                                            event={market}
+                                                            isSelected={false}
                                                             onClick={() => {
                                                                 if (onMarketSelect) onMarketSelect(market);
                                                                 handleQuickAction(`Analyze this market: ${market.title}`);
                                                             }}
-                                                            style={{ justifyContent: 'flex-start' }}
-                                                            fillWidth
-                                                        >
-                                                            <Text truncate>{market.title}</Text>
-                                                        </Button>
+                                                        />
                                                     ))}
                                                 </Column>
                                             )}
@@ -269,19 +266,15 @@ export const UnifiedChatWindow: React.FC<UnifiedChatWindowProps> = ({
                                             <Column gap="xs" fillWidth paddingY="s">
                                                 <Text variant="label-strong-s" onBackground="neutral-weak">Top Trending Markets</Text>
                                                 {trendingMarkets.map(market => (
-                                                    <Button 
-                                                        key={market.id} 
-                                                        variant="secondary" 
-                                                        size="s" 
+                                                    <MarketCard 
+                                                        key={market.id}
+                                                        event={market}
+                                                        isSelected={false}
                                                         onClick={() => {
                                                             if (onMarketSelect) onMarketSelect(market);
                                                             onSendMessage(`@agent Analyze this market: ${market.title}`);
                                                         }}
-                                                        style={{ justifyContent: 'flex-start' }}
-                                                        fillWidth
-                                                    >
-                                                        <Text truncate>{market.title}</Text>
-                                                    </Button>
+                                                    />
                                                 ))}
                                             </Column>
                                         )}

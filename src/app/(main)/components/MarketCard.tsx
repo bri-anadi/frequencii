@@ -25,24 +25,85 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     return `$${vol.toFixed(0)}`;
   };
 
-  return (
-    <Column
-      fillWidth
-      padding="s"
-      gap="s"
-      radius="l"
-      border="neutral-alpha-medium"
-      background={isSelected ? "neutral-medium" : "neutral-weak"}
-      onClick={onClick}
-      style={{
-        cursor: "pointer",
-        transition: "all 0.2s ease-in-out",
-        minHeight: "fit-content",
-      }}
-    >
-      <Text variant="label-default-s" style={{ whiteSpace: "normal" }}>
-        {event.title}
-      </Text>
+    const getDaysLeft = (dateStr: string) => {
+        if (!dateStr) return null;
+        try {
+            const diff = new Date(dateStr).getTime() - Date.now();
+            if (diff <= 0) return "Ended";
+            const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+            if (days === 1) return "1 day left";
+            return `${days} days left`;
+        } catch {
+            return null;
+        }
+    };
+
+    return (
+        <Column
+            fillWidth
+            padding="s"
+            gap="s"
+            radius="l"
+            border="neutral-alpha-medium"
+            background={isSelected ? "neutral-medium" : "surface"}
+            onClick={onClick}
+            style={{
+                cursor: "pointer",
+                transition: "all 0.2s ease-in-out",
+                minHeight: "fit-content",
+            }}
+        >
+            <Row gap="s" vertical="center" fillWidth>
+                {/* Thumbnail Image */}
+                {event.image && (
+                    <div 
+                        style={{ 
+                            width: '40px', 
+                            height: '40px', 
+                            borderRadius: '8px', 
+                            overflow: 'hidden',
+                            flexShrink: 0
+                        }}
+                    >
+                        <img 
+                            src={event.image} 
+                            alt={event.title} 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                        />
+                    </div>
+                )}
+                
+                <Column gap="xs" flex={1}>
+                    <Text variant="label-strong-s" style={{ whiteSpace: "normal" }} truncate>
+                        {event.title}
+                    </Text>
+                    <Row gap="xs" vertical="center">
+                        {event.category && (
+                            <Text
+                                variant="body-default-xs"
+                                style={{
+                                    background: "var(--brand-alpha-weak)",
+                                    padding: "2px 6px",
+                                    borderRadius: "4px",
+                                    textTransform: "capitalize",
+                                    fontSize: "10px"
+                                }}
+                            >
+                                {event.category}
+                            </Text>
+                        )}
+                        <Text variant="body-default-xs" onBackground="neutral-weak">
+                            •
+                        </Text>
+                        <Text variant="body-default-xs" onBackground="neutral-weak">
+                            {getDaysLeft(event.endDate) || (event.active ? 'Active' : 'Closed')}
+                        </Text>
+                    </Row>
+                </Column>
+            </Row>
 
       {/* Odds bar */}
       <Row fillWidth gap="2" style={{ height: "6px", borderRadius: "3px", overflow: "hidden" }}>
