@@ -92,7 +92,7 @@ function parseJupiterEvent(raw: any): PredictionEvent {
     id: raw.eventId || "",
     title: metadata.title || "",
     slug: metadata.slug || raw.eventId || "",
-    description: raw.closeCondition || "",
+    description: raw.markets?.[0]?.rulesPrimary || metadata.description || raw.closeCondition || "",
     category: raw.category || "Other",
     image: metadata.imageUrl || "",
     volume: volumeUsd,

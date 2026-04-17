@@ -96,7 +96,7 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({
       {/* Category + time */}
       <Row gap="s" vertical="center">
         {event.category && (
-          <Badge title={event.category} arrow={false} size="s" />
+          <Badge title={event.category} arrow={false} paddingX="12" paddingY="4" textSize="xs" />
         )}
         {getDaysLeft(event.endDate) && (
           <Text variant="body-default-xs" onBackground="neutral-weak">
@@ -214,12 +214,12 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({
           <Text variant="label-default-xs" onBackground="neutral-weak">
             Description
           </Text>
-          <Text
+            <Text
             variant="body-default-s"
             style={{
               lineHeight: "1.5",
-              maxHeight: "120px",
-              overflow: "auto",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word"
             }}
           >
             {event.description}

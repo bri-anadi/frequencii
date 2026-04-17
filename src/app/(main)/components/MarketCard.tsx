@@ -56,33 +56,33 @@ export const MarketCard: React.FC<MarketCardProps> = ({
             <Row gap="s" vertical="center" fillWidth>
                 {/* Thumbnail Image */}
                 {event.image && (
-                    <div 
-                        style={{ 
-                            width: '40px', 
-                            height: '40px', 
-                            borderRadius: '8px', 
+                    <div
+                        style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '8px',
                             overflow: 'hidden',
                             flexShrink: 0
                         }}
                     >
-                        <img 
-                            src={event.image} 
-                            alt={event.title} 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        <img
+                            src={event.image}
+                            alt={event.title}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                             onError={(e) => {
                                 (e.target as HTMLImageElement).style.display = 'none';
                             }}
                         />
                     </div>
                 )}
-                
+
                 <Column gap="xs" flex={1}>
                     <Text variant="label-strong-s" style={{ whiteSpace: "normal" }} truncate>
                         {event.title}
                     </Text>
                     <Row gap="xs" vertical="center">
                         {event.category && (
-                            <Badge title={event.category} arrow={false} size="s" />
+                            <Badge title={event.category} arrow={false} paddingX="12" paddingY="4" textSize="xs" />
                         )}
                         <Text variant="body-default-xs" onBackground="neutral-weak">
                             •
@@ -91,6 +91,19 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                             {getDaysLeft(event.endDate) || (event.active ? 'Active' : 'Closed')}
                         </Text>
                     </Row>
+                    {event.description && (
+                        <Text variant="body-default-xs" onBackground="neutral-weak" style={{ 
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'normal',
+                            marginTop: '2px'
+                        }}>
+                            {event.description}
+                        </Text>
+                    )}
                 </Column>
             </Row>
 
