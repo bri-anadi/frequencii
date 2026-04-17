@@ -7,7 +7,6 @@ import {
   delegationRecordPdaFromDelegatedAccount,
   delegationMetadataPdaFromDelegatedAccount,
   DELEGATION_PROGRAM_ID,
-  MAGIC_PROGRAM_ID,
   ConnectionMagicRouter
 } from "@magicblock-labs/ephemeral-rollups-sdk";
 

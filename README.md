@@ -30,6 +30,14 @@ Experience instant, gasless messaging that feels like Web2 but is secured by Sol
 *   **Mechanism**: Chat messages are processed on high-speed ephemeral rollups (SVM) and only the final state is settled to Solana Mainnet. This enables thousands of confirmed messages per second at zero cost to the user.
 *   **User Benefit**: No popup signing for every message. No gas fees. Just chat.
 
+### 3. AI Prediction Agent (Private Trading)
+Analyze prediction markets with AI and place fully private trades through ZK-shielded burner wallets.
+*   **AI Engine**: OpenRouter (Minimax M2.5) provides real-time market analysis, risk assessment, and trading recommendations.
+*   **Market Data**: Polymarket Gamma API supplies live odds, volume, liquidity, and event metadata.
+*   **Trade Execution**: Jupiter Prediction API enables native Solana prediction market trading without cross-chain bridging.
+*   **Privacy Architecture**: All prediction trades route through an ephemeral burner wallet funded via PrivacyCash (Main Wallet → ZK Shielded Pool → Burner Wallet), breaking the on-chain link between user identity and prediction positions.
+*   **User Benefit**: Get AI-powered market insights and trade predictions with complete anonymity — no one can link your bets to your main wallet.
+
 ---
 
 ## Technology Stack & Architecture
@@ -40,6 +48,9 @@ We leverage a composable stack of cutting-edge Solana technologies:
 | :--- | :--- | :--- |
 | **Privacy Layer** | **PrivacyCash / Light Protocol** | Handles ZK-compression, UTXO state management, and shielded transactions. |
 | **Scaling Layer** | **MagicBlock (Ephemeral Rollups)** | usage of "Delegated PDAs" to enable gasless, signature-free session keys for chat. |
+| **AI Layer** | **OpenRouter (Minimax M2.5)** | LLM-powered market analysis and prediction recommendations. |
+| **Market Data** | **Polymarket Gamma API** | Live prediction market odds, volume, and event data. |
+| **Prediction Trading** | **Jupiter Prediction API** | Native Solana prediction market order execution. |
 | **Infrastructure** | **Helius** | High-performance RPCs ensuring 99.9% uptime for transaction delivery. |
 | **Frontend** | **Next.js + Once UI** | A responsive, modern interface designed for mass adoption. |
 

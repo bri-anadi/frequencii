@@ -7,8 +7,8 @@ import {
     Button,
     NumberInput,
 } from "@once-ui-system/core";
-import { giftSchema } from "../utils";
-import { useTokenBalance } from "../hooks/useTokenBalance";
+import { giftSchema } from "@/lib/chatUtils";
+import { useTokenBalance } from "@/lib/hooks/useTokenBalance";
 import { useAppKitAccount } from '@reown/appkit/react';
 
 interface GiftModalProps {
@@ -19,7 +19,7 @@ interface GiftModalProps {
     recipientAddress: string;
 }
 
-import { usePrivacyCash } from "../hooks/usePrivacyCash";
+import { usePrivacyCash } from "@/lib/hooks/usePrivacyCash";
 
 export const GiftModal: React.FC<GiftModalProps> = ({ isOpen, onClose, onSend, network, recipientAddress }) => {
     const [giftAmount, setGiftAmount] = useState("");

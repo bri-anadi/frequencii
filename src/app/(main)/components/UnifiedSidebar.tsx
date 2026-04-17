@@ -9,13 +9,13 @@ import {
     Scroller,
     StatusIndicator,
 } from "@once-ui-system/core";
-import { formatContactName } from "../utils";
+import { formatContactName } from "@/lib/chatUtils";
 
-interface ChatSidebarProps {
+interface UnifiedSidebarProps {
     isMobile: boolean;
     contacts: any[];
-    selectedContact: any;
-    onContactClick: (contact: any) => void;
+    selectedRoom: string | null; // "frequant" or contact id
+    onRoomSelect: (roomId: string) => void;
     isWalletConnected: boolean;
     onOpenAddContact: () => void;
     onConnectWallet: () => void;
@@ -26,11 +26,13 @@ interface ChatSidebarProps {
     onUndelegate: () => void;
 }
 
-export const ChatSidebar: React.FC<ChatSidebarProps> = ({
+
+
+export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
     isMobile,
     contacts,
-    selectedContact,
-    onContactClick,
+    selectedRoom,
+    onRoomSelect,
     isWalletConnected,
     onOpenAddContact,
     onConnectWallet,
@@ -70,23 +72,47 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 Frequencii
             </Text>
 
+            {/* Pinned Frequant Room */}
+            <Button
+                variant={selectedRoom === "frequant" ? "secondary" : "tertiary"}
+                onClick={() => onRoomSelect("frequant")}
+                fillWidth
+                style={{ justifyContent: 'flex-start', height: 'auto', marginBottom: '8px' }}
+            >
+                <Row fillWidth gap="s" vertical="center" paddingY="4">
+                    <Column fillWidth gap="4">
+                        <Row fillWidth vertical="center" gap="4">
+                            <StatusIndicator color="green" />
+                            <Text variant="label-default-s">Frequant</Text>
+                        </Row>
+                        <Text variant="body-default-xs" onBackground="neutral-weak" truncate>
+                            AI Prediction Agent
+                        </Text>
+                    </Column>
+                </Row>
+            </Button>
+
             <Column paddingBottom="s">
                 <Input
-                    id="contact-search"
+                    id="sidebar-search"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search contacts..."
+                    placeholder="Search..."
                     height="s"
                 />
             </Column>
 
+            {/* Divider */}
+            <div style={{ height: 1, background: 'var(--neutral-alpha-medium)', margin: '4px 0' }} />
+
+            {/* Contact list */}
             <Scroller fillWidth>
                 <Column gap="4" fillWidth>
                     {filteredContacts.map((contact) => (
                         <Button
                             key={contact.id}
-                            variant={selectedContact.id === contact.id ? "secondary" : "tertiary"}
-                            onClick={() => onContactClick(contact)}
+                            variant={selectedRoom === contact.id ? "secondary" : "tertiary"}
+                            onClick={() => onRoomSelect(contact.id)}
                             fillWidth
                             style={{ justifyContent: 'flex-start', height: 'auto' }}
                         >
@@ -106,6 +132,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 </Column>
             </Scroller>
 
+            {/* Bottom controls */}
             <Column gap="xs" style={{ marginTop: 'auto' }}>
                 {isWalletConnected && (
                     <Button

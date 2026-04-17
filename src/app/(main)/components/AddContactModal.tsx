@@ -7,7 +7,7 @@ import {
     Button,
     Input,
 } from "@once-ui-system/core";
-import { contactSchema } from "../utils";
+import { contactSchema } from "@/lib/chatUtils";
 
 interface AddContactModalProps {
     isOpen: boolean;
