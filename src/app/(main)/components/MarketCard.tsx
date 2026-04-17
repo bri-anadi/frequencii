@@ -82,7 +82,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                     </Text>
                     <Row gap="xs" vertical="center">
                         {event.category && (
-                            <Badge title={event.category} arrow={false} />
+                            <Badge title={event.category} arrow={false} size="s" />
                         )}
                         <Text variant="body-default-xs" onBackground="neutral-weak">
                             •
