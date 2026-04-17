@@ -96,7 +96,7 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({
       {/* Category + time */}
       <Row gap="s" vertical="center">
         {event.category && (
-          <Badge title={event.category} arrow={false} paddingX="12" paddingY="4" textSize="xs" />
+          <Badge title={event.category.charAt(0).toUpperCase() + event.category.slice(1)} arrow={false} paddingX="12" paddingY="4" textSize="xs" />
         )}
         {getDaysLeft(event.endDate) && (
           <Text variant="body-default-xs" onBackground="neutral-weak">

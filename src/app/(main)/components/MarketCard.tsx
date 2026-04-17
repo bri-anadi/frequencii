@@ -25,87 +25,91 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     return `$${vol.toFixed(0)}`;
   };
 
-    const getDaysLeft = (dateStr: string) => {
-        if (!dateStr) return null;
-        try {
-            const diff = new Date(dateStr).getTime() - Date.now();
-            if (diff <= 0) return "Ended";
-            const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-            if (days === 1) return "1 day left";
-            return `${days} days left`;
-        } catch {
-            return null;
-        }
-    };
+  const getDaysLeft = (dateStr: string) => {
+    if (!dateStr) return null;
+    try {
+      const diff = new Date(dateStr).getTime() - Date.now();
+      if (diff <= 0) return "Ended";
+      const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+      if (days === 1) return "1 day left";
+      return `${days} days left`;
+    } catch {
+      return null;
+    }
+  };
 
-    return (
-        <Column
-            fillWidth
-            padding="s"
-            gap="s"
-            radius="l"
-            border="neutral-alpha-medium"
-            background={isSelected ? "neutral-medium" : "surface"}
-            onClick={onClick}
+  return (
+    <Column
+      fillWidth
+      padding="s"
+      gap="s"
+      radius="l"
+      border="neutral-alpha-medium"
+      background={isSelected ? "neutral-medium" : "surface"}
+      onClick={onClick}
+      style={{
+        cursor: "pointer",
+        transition: "all 0.2s ease-in-out",
+        minHeight: "fit-content",
+      }}
+    >
+      <Row gap="s" vertical="start" fillWidth>
+        {/* Thumbnail Image */}
+        {event.image && (
+          <div
             style={{
-                cursor: "pointer",
-                transition: "all 0.2s ease-in-out",
-                minHeight: "fit-content",
+              width: '40px',
+              height: '40px',
+              borderRadius: '8px',
+              overflow: 'hidden',
+              flexShrink: 0
             }}
-        >
-            <Row gap="s" vertical="center" fillWidth>
-                {/* Thumbnail Image */}
-                {event.image && (
-                    <div
-                        style={{
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '8px',
-                            overflow: 'hidden',
-                            flexShrink: 0
-                        }}
-                    >
-                        <img
-                            src={event.image}
-                            alt={event.title}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                        />
-                    </div>
-                )}
+          >
+            <img
+              src={event.image}
+              alt={event.title}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          </div>
+        )}
 
-                <Column gap="xs" flex={1}>
-                    <Text variant="label-strong-s" style={{ whiteSpace: "normal" }} truncate>
-                        {event.title}
-                    </Text>
-                    <Row gap="xs" vertical="center">
-                        {event.category && (
-                            <Badge title={event.category} arrow={false} paddingX="12" paddingY="4" textSize="xs" />
-                        )}
-                        <Text variant="body-default-xs" onBackground="neutral-weak">
-                            •
-                        </Text>
-                        <Text variant="body-default-xs" onBackground="neutral-weak">
-                            {getDaysLeft(event.endDate) || (event.active ? 'Active' : 'Closed')}
-                        </Text>
-                    </Row>
-                    {event.description && (
-                        <Text variant="body-default-xs" onBackground="neutral-weak" style={{ 
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'normal',
-                            marginTop: '2px'
-                        }}>
-                            {event.description}
-                        </Text>
-                    )}
-                </Column>
-            </Row>
+        <Column gap="xs" flex={1}>
+          <Text variant="label-strong-s" style={{ whiteSpace: "normal" }}>
+            {event.title}
+          </Text>
+          <Row gap="xs" vertical="center">
+            {event.category && (
+              <Text variant="body-default-xs" onBackground="neutral-weak" style={{ textTransform: "capitalize" }}>
+                {event.category}
+              </Text>
+            )}
+            <Text variant="body-default-xs" onBackground="neutral-weak">
+              •
+            </Text>
+            <Text variant="body-default-xs" onBackground="neutral-weak">
+              {getDaysLeft(event.endDate) || (event.active ? 'Active' : 'Closed')}
+            </Text>
+          </Row>
+          {event.description && (
+            <Text variant="body-default-xs" onBackground="neutral-weak" style={{
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'normal',
+              width: '100%',
+              wordBreak: 'break-word',
+              marginTop: '2px'
+            }}>
+              {event.description}
+            </Text>
+          )}
+        </Column>
+      </Row>
 
       {/* Odds bar */}
       <Row fillWidth gap="2" style={{ height: "6px", borderRadius: "3px", overflow: "hidden" }}>
