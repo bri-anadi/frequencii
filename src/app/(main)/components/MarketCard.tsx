@@ -1,5 +1,5 @@
 import React from "react";
-import { Column, Row, Text, Button } from "@once-ui-system/core";
+import { Column, Row, Text, Button, Badge } from "@once-ui-system/core";
 import type { PredictionEvent } from "@/lib/types";
 
 interface MarketCardProps {
@@ -82,18 +82,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                     </Text>
                     <Row gap="xs" vertical="center">
                         {event.category && (
-                            <Text
-                                variant="body-default-xs"
-                                style={{
-                                    background: "var(--brand-alpha-weak)",
-                                    padding: "2px 6px",
-                                    borderRadius: "4px",
-                                    textTransform: "capitalize",
-                                    fontSize: "10px"
-                                }}
-                            >
-                                {event.category}
-                            </Text>
+                            <Badge title={event.category} arrow={false} />
                         )}
                         <Text variant="body-default-xs" onBackground="neutral-weak">
                             •

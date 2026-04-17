@@ -1,5 +1,5 @@
 import React from "react";
-import { Column, Row, Text, Button } from "@once-ui-system/core";
+import { Column, Row, Text, Button, Badge } from "@once-ui-system/core";
 import type { PredictionEvent } from "@/lib/types";
 
 interface MarketDetailProps {
@@ -96,17 +96,7 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({
       {/* Category + time */}
       <Row gap="s" vertical="center">
         {event.category && (
-          <Text
-            variant="label-default-xs"
-            padding="xs"
-            style={{
-              background: "var(--brand-alpha-weak)",
-              borderRadius: "4px",
-              textTransform: "capitalize",
-            }}
-          >
-            {event.category}
-          </Text>
+          <Badge title={event.category} arrow={false} />
         )}
         {getDaysLeft(event.endDate) && (
           <Text variant="body-default-xs" onBackground="neutral-weak">
