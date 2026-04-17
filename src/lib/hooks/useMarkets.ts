@@ -67,12 +67,25 @@ export function useMarkets() {
     []
   );
 
-  // Initial fetch + auto-refresh
+  // Initial fetch on mount
   useEffect(() => {
-    fetchMarkets(filters);
+    fetchMarkets({ category: "All", search: "", sort: "volume", offset: 0, limit: 20 });
+    // Note: NOT depending on `filters` to avoid resetting list when offset changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
+  // Set up auto-refresh using an interval that references the current filters
+  const filtersRef = useRef(filters);
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
+
+  useEffect(() => {
     intervalRef.current = setInterval(() => {
-      fetchMarkets(filters);
+      // Background refresh uses the same offset but starts from 0 to current?
+      // Actually, a simple background refresh should just update current items or fetch offset: 0.
+      // For now, let's keep it simple and just fetch with the current filters.
+      fetchMarkets(filtersRef.current);
     }, REFRESH_INTERVAL_MS);
 
     return () => {
@@ -80,7 +93,7 @@ export function useMarkets() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [filters, fetchMarkets]);
+  }, [fetchMarkets]);
 
   const refetch = useCallback(() => {
     fetchMarkets(filters);
@@ -92,19 +105,31 @@ export function useMarkets() {
     fetchMarkets(nextFilters, true);
   }, [filters, fetchMarkets]);
 
-  const updateCategory = useCallback((category: MarketCategory) => {
-    setFilters((prev) => ({ ...prev, category, offset: 0 }));
-  }, []);
+  const updateCategory = useCallback(
+    (category: MarketCategory) => {
+      const nextFilters = { ...filters, category, offset: 0 };
+      setFilters(nextFilters);
+      fetchMarkets(nextFilters);
+    },
+    [filters, fetchMarkets]
+  );
 
-  const updateSearch = useCallback((search: string) => {
-    setFilters((prev) => ({ ...prev, search, offset: 0 }));
-  }, []);
+  const updateSearch = useCallback(
+    (search: string) => {
+      const nextFilters = { ...filters, search, offset: 0 };
+      setFilters(nextFilters);
+      fetchMarkets(nextFilters);
+    },
+    [filters, fetchMarkets]
+  );
 
   const updateSort = useCallback(
     (sort: MarketFilter["sort"]) => {
-      setFilters((prev) => ({ ...prev, sort, offset: 0 }));
+      const nextFilters = { ...filters, sort, offset: 0 };
+      setFilters(nextFilters);
+      fetchMarkets(nextFilters);
     },
-    []
+    [filters, fetchMarkets]
   );
 
   const selectMarket = useCallback((market: PredictionEvent | null) => {

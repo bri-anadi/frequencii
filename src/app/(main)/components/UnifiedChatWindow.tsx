@@ -155,7 +155,7 @@ export const UnifiedChatWindow: React.FC<UnifiedChatWindowProps> = ({
                         {isFrequant
                             ? (selectedMarket
                                 ? `Analyzing: ${selectedMarket.title.slice(0, 40)}${selectedMarket.title.length > 40 ? "..." : ""}`
-                                : "AI Prediction Agent")
+                                : "Prediction Agent")
                             : "On-chain"
                         }
                     </Text>
@@ -172,7 +172,7 @@ export const UnifiedChatWindow: React.FC<UnifiedChatWindowProps> = ({
                 <Scroller fillWidth fillHeight padding="m">
                     <Column gap="m" fillWidth>
                         {messages.length === 0 && isFrequant ? (
-                            <Column center fillWidth flex={1} padding="l">
+                            <Column center fillWidth flex={1} padding="l" gap="l">
                                 <Column
                                     background="surface"
                                     border="neutral-alpha-medium"
@@ -182,60 +182,76 @@ export const UnifiedChatWindow: React.FC<UnifiedChatWindowProps> = ({
                                     style={{ maxWidth: "500px", width: "100%", margin: "0 auto" }}
                                 >
                                     <Column gap="xs" center>
-                                        <Text variant="heading-strong-m">Frequant AI</Text>
+                                        <Text variant="heading-strong-m">Frequant</Text>
                                         <Text variant="body-default-s" onBackground="neutral-weak" style={{ textAlign: "center" }}>
                                             Your on-chain Prediction Market Analyst. I can help you analyze events, assess risks, and track trends.
                                         </Text>
                                     </Column>
-
-                                    {selectedMarket ? (
-                                        <Column gap="s" center>
-                                            <Text variant="heading-strong-s">Market Analysis</Text>
-                                            <Text variant="body-default-s" onBackground="neutral-weak" style={{ textAlign: "center" }}>
-                                                Currently focused on: <strong>{selectedMarket.title}</strong>
-                                            </Text>
-                                            <Row gap="xs" style={{ flexWrap: "wrap", justifyContent: "center" }}>
-                                                {QUICK_ACTIONS.filter((a) => a.requiresMarket).map((action) => (
-                                                    <Button key={action.label} variant="secondary" size="s" onClick={() => handleQuickAction(action.label)}>
-                                                        {action.label}
-                                                    </Button>
-                                                ))}
-                                            </Row>
-                                        </Column>
-                                    ) : (
-                                        <Column gap="s" center fillWidth>
-                                            <Text variant="heading-strong-s">General Chat & Trending</Text>
-                                            <Text variant="body-default-s" onBackground="neutral-weak" style={{ textAlign: "center" }}>
-                                                Not sure where to start? Ask about trending markets or global events.
-                                            </Text>
-                                            
-                                            {trendingMarkets && trendingMarkets.length > 0 && (
-                                                <Column gap="xs" fillWidth paddingY="s">
-                                                    <Text variant="label-strong-s" onBackground="neutral-weak">Top Trending Markets</Text>
-                                                    {trendingMarkets.map(market => (
-                                                        <MarketCard 
-                                                            key={market.id}
-                                                            event={market}
-                                                            isSelected={false}
-                                                            onClick={() => {
-                                                                if (onMarketSelect) onMarketSelect(market);
-                                                                handleQuickAction(`Analyze this market: ${market.title}`);
-                                                            }}
-                                                        />
-                                                    ))}
-                                                </Column>
-                                            )}
-
-                                            <Row gap="xs" style={{ flexWrap: "wrap", justifyContent: "center" }}>
-                                                {QUICK_ACTIONS.filter((a) => !a.requiresMarket).map((action) => (
-                                                    <Button key={action.label} variant="tertiary" size="s" onClick={() => handleQuickAction(action.label)}>
-                                                        {action.label}
-                                                    </Button>
-                                                ))}
-                                            </Row>
-                                        </Column>
-                                    )}
                                 </Column>
+
+                                {selectedMarket ? (
+                                    <Column
+                                        background="surface"
+                                        border="neutral-alpha-medium"
+                                        radius="l"
+                                        padding="l"
+                                        gap="s"
+                                        center
+                                        style={{ maxWidth: "500px", width: "100%", margin: "0 auto" }}
+                                    >
+                                        <Text variant="heading-strong-s">Market Analysis</Text>
+                                        <Text variant="body-default-s" onBackground="neutral-weak" style={{ textAlign: "center" }}>
+                                            Currently focused on: <strong>{selectedMarket.title}</strong>
+                                        </Text>
+                                        <Row gap="xs" style={{ flexWrap: "wrap", justifyContent: "center" }}>
+                                            {QUICK_ACTIONS.filter((a) => a.requiresMarket).map((action) => (
+                                                <Button key={action.label} variant="secondary" size="s" onClick={() => handleQuickAction(action.label)}>
+                                                    {action.label}
+                                                </Button>
+                                            ))}
+                                        </Row>
+                                    </Column>
+                                ) : (
+                                    <Column
+                                        background="surface"
+                                        border="neutral-alpha-medium"
+                                        radius="l"
+                                        padding="l"
+                                        gap="s"
+                                        center
+                                        style={{ maxWidth: "500px", width: "100%", margin: "0 auto" }}
+                                    >
+                                        <Text variant="heading-strong-s">General Chat & Trending</Text>
+                                        <Text variant="body-default-s" onBackground="neutral-weak" style={{ textAlign: "center" }}>
+                                            Not sure where to start? Ask about trending markets or global events.
+                                        </Text>
+                                        
+                                        {trendingMarkets && trendingMarkets.length > 0 && (
+                                            <Column gap="xs" fillWidth paddingY="s">
+                                                <Text variant="label-strong-s" onBackground="neutral-weak">Top Trending Markets</Text>
+                                                {trendingMarkets.map(market => (
+                                                    <MarketCard 
+                                                        key={market.id}
+                                                        event={market}
+                                                        isSelected={false}
+                                                        onClick={() => {
+                                                            if (onMarketSelect) onMarketSelect(market);
+                                                            handleQuickAction(`Analyze this market: ${market.title}`);
+                                                        }}
+                                                    />
+                                                ))}
+                                            </Column>
+                                        )}
+
+                                        <Row gap="xs" style={{ flexWrap: "wrap", justifyContent: "center" }}>
+                                            {QUICK_ACTIONS.filter((a) => !a.requiresMarket).map((action) => (
+                                                <Button key={action.label} variant="tertiary" size="s" onClick={() => handleQuickAction(action.label)}>
+                                                    {action.label}
+                                                </Button>
+                                            ))}
+                                        </Row>
+                                    </Column>
+                                )}
                             </Column>
                         ) : messages.length === 0 && !isFrequant ? (
                             <Column center fillWidth flex={1} padding="l">
@@ -341,41 +357,64 @@ export const UnifiedChatWindow: React.FC<UnifiedChatWindowProps> = ({
                                                 </Text>
                                             </Column>
                                         ) : isAgent ? (
-                                            <Row gap="xs" style={{ maxWidth: "80%" }}>
-                                                <Column
-                                                    padding="s"
-                                                    radius="l"
-                                                    gap="4"
-                                                    style={{
-                                                        background: "var(--neutral-alpha-weak)",
-                                                        borderBottomLeftRadius: "4px",
-                                                    }}
-                                                >
-                                                    <Text
-                                                        variant="body-default-s"
-                                                        style={{ lineHeight: "1.5" }}
-                                                    >
-                                                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                                                            {msg.content}
-                                                        </ReactMarkdown>
-                                                        {msg.isStreaming && (
-                                                            <span
-                                                                style={{
-                                                                    display: "inline-block",
-                                                                    width: "8px",
-                                                                    height: "16px",
-                                                                    background: "var(--brand-solid-strong)",
-                                                                    marginLeft: "2px",
-                                                                    animation: "blink 1s infinite",
-                                                                }}
-                                                            />
-                                                        )}
-                                                    </Text>
-                                                    <Text variant="body-default-xs" style={{ opacity: 0.5 }}>
-                                                        {msg.timestamp}
-                                                    </Text>
+                                            <Column fillWidth gap="s">
+                                                <Column gap="xs" style={{ maxWidth: "80%" }}>
+                                                    <Row gap="xs">
+                                                        <Column
+                                                            padding="s"
+                                                            radius="l"
+                                                            gap="4"
+                                                            style={{
+                                                                background: "var(--neutral-alpha-weak)",
+                                                                borderBottomLeftRadius: "4px",
+                                                            }}
+                                                        >
+                                                            <Text
+                                                                variant="body-default-s"
+                                                                style={{ lineHeight: "1.5" }}
+                                                            >
+                                                                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                                                    {msg.content}
+                                                                </ReactMarkdown>
+                                                                {msg.isStreaming && (
+                                                                    <span
+                                                                        style={{
+                                                                            display: "inline-block",
+                                                                            width: "8px",
+                                                                            height: "16px",
+                                                                            background: "var(--brand-solid-strong)",
+                                                                            marginLeft: "2px",
+                                                                            animation: "blink 1s infinite",
+                                                                        }}
+                                                                    />
+                                                                )}
+                                                            </Text>
+                                                            <Text variant="body-default-xs" style={{ opacity: 0.5 }}>
+                                                                {msg.timestamp}
+                                                            </Text>
+                                                        </Column>
+                                                    </Row>
                                                 </Column>
-                                            </Row>
+                                                {msg.relatedMarketIds && msg.relatedMarketIds.length > 0 && (
+                                                    <div style={{ display: "flex", overflowX: "auto", gap: "16px", paddingBottom: "8px", width: "100%", scrollSnapType: "x mandatory" }} className="scrollbar-hide">
+                                                        {msg.relatedMarketIds.map(id => {
+                                                            const market = (selectedMarket && selectedMarket.id === id) ? selectedMarket : trendingMarkets?.find(m => m.id === id);
+                                                            if (!market) return null;
+                                                            return (
+                                                                <div key={market.id} style={{ scrollSnapAlign: "start", flexShrink: 0, width: "240px" }}>
+                                                                    <MarketCard 
+                                                                        event={market}
+                                                                        isSelected={selectedMarket?.id === market.id}
+                                                                        onClick={() => {
+                                                                            if (onMarketSelect) onMarketSelect(market);
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </Column>
                                         ) : (
                                             <Column
                                                 fit

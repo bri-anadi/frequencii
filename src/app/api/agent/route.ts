@@ -29,11 +29,14 @@ Format:
 Important:
 - You are NOT a financial advisor. Always include a brief disclaimer when recommending positions.
 - Be objective — acknowledge both sides of any prediction.
-- If you lack information to make a strong analysis, say so honestly.`;
+- If you lack information to make a strong analysis, say so honestly.
+- CRITICAL INSTRUCTION: If you analyze, recommend, or refer to any specific markets provided in the context, DO NOT enumerate or print all their details in your text response. Provide a natural, conversational summary of why they are relevant.
+- You MUST append a tag at the very end of your response listing the market IDs exactly as provided. Format strictly as: ||MARKETS:id1,id2,...||. The system will automatically generate interactive Market Cards below your chat.`;
 
 function buildMessages(
   userMessage: string,
   marketContext: any | null,
+  trendingMarkets: any[] | null,
   history: any[]
 ) {
   const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }];
@@ -56,6 +59,7 @@ function buildMessages(
     const contextBlock = `
 [MARKET CONTEXT — Jupiter Prediction API]
 Title: ${marketContext.title}
+ID: ${marketContext.id}
 Category: ${marketContext.category}
 Description: ${marketContext.description}
 Total Volume: $${(marketContext.volume || 0).toLocaleString()}
@@ -71,6 +75,16 @@ Current Odds: ${market.outcomePrices?.map((p: number) => `${(p * 100).toFixed(1)
     : ""
 }
 [END MARKET CONTEXT]
+`;
+    fullMessage = contextBlock + "\n\n" + userMessage;
+  } else if (trendingMarkets && trendingMarkets.length > 0) {
+    const trendingList = trendingMarkets.map((m: any, index: number) =>
+      `${index + 1}. ${m.title} (ID: ${m.id}, Status: ${m.active ? "Active" : "Closed"}, Base Volume: $${(m.volume || 0).toLocaleString()})`
+    ).join("\n");
+    const contextBlock = `
+[GLOBAL MARKET CONTEXT — Top Trending Markets]
+${trendingList}
+[END GLOBAL MARKET CONTEXT]
 `;
     fullMessage = contextBlock + "\n\n" + userMessage;
   }
@@ -90,7 +104,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { message, marketContext, history } = body;
+    const { message, marketContext, trendingMarkets, history } = body;
 
     if (!message || typeof message !== "string") {
       return new Response(
@@ -102,6 +116,7 @@ export async function POST(request: NextRequest) {
     const messages = buildMessages(
       message,
       marketContext || null,
+      trendingMarkets || null,
       Array.isArray(history) ? history : []
     );
 

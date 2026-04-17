@@ -6,8 +6,7 @@ export function useTokenBalance(
     publicKey: string | null,
     tokenSymbol: string,
     isConnected: boolean,
-    enabled: boolean,
-    network: 'devnet' | 'mainnet' = 'devnet'
+    enabled: boolean
 ) {
     const [balance, setBalance] = useState<number | null>(null);
 
@@ -20,7 +19,7 @@ export function useTokenBalance(
         const fetchBalance = async () => {
             try {
                 // improved Helius RPC selection logic
-                let rpcUrl = network === 'mainnet' ? 'https://api.mainnet-beta.solana.com' : 'https://api.devnet.solana.com';
+                let rpcUrl = 'https://api.mainnet-beta.solana.com';
                 const heliusEnv = process.env.NEXT_PUBLIC_HELIUS_RPC_URL;
 
                 if (heliusEnv) {
@@ -29,8 +28,8 @@ export function useTokenBalance(
                             const url = new URL(heliusEnv);
                             const apiKey = url.searchParams.get('api-key');
                             if (apiKey) {
-                                rpcUrl = `https://${network}.helius-rpc.com/?api-key=${apiKey}`;
-                            } else if (heliusEnv.includes(network)) {
+                                rpcUrl = `https://mainnet.helius-rpc.com/?api-key=${apiKey}`;
+                            } else if (heliusEnv.includes('mainnet')) {
                                 rpcUrl = heliusEnv;
                             }
                         } catch (e) {
@@ -38,7 +37,7 @@ export function useTokenBalance(
                         }
                     } else {
                         // Assume raw API Key
-                        rpcUrl = `https://${network}.helius-rpc.com/?api-key=${heliusEnv}`;
+                        rpcUrl = `https://mainnet.helius-rpc.com/?api-key=${heliusEnv}`;
                     }
                 }
 
@@ -81,7 +80,7 @@ export function useTokenBalance(
         };
 
         fetchBalance();
-    }, [publicKey, tokenSymbol, isConnected, enabled, network]);
+    }, [publicKey, tokenSymbol, isConnected, enabled]);
 
     return balance;
 }

@@ -20,7 +20,7 @@ export function useAgent() {
   const abortRef = useRef<AbortController | null>(null);
 
   const sendMessage = useCallback(
-    async (text: string, marketContext: PredictionEvent | null) => {
+    async (text: string, marketContext: PredictionEvent | null, trendingMarkets?: PredictionEvent[]) => {
       // Abort any existing stream
       if (abortRef.current) {
         abortRef.current.abort();
@@ -66,6 +66,7 @@ export function useAgent() {
           body: JSON.stringify({
             message: text,
             marketContext: marketContext || undefined,
+            trendingMarkets: trendingMarkets?.slice(0, 5) || undefined,
             history,
           }),
           signal: abortController.signal,
@@ -96,20 +97,29 @@ export function useAgent() {
               const data = JSON.parse(trimmed.slice(6));
 
               if (data.done) {
-                // Stream complete
+                // Stream complete: Parse final IDs and remove tag
+                let displayContent = accumulated;
+                let relatedMarketIds: string[] | undefined;
+                const match = accumulated.match(/\|\|MARKETS:(.*?)(?:\|\||$)/);
+                if (match && match[1]) {
+                  relatedMarketIds = match[1].split(",").map(s => s.trim()).filter(Boolean);
+                }
+                displayContent = displayContent.replace(/\|\|MARKETS:?[\s\S]*$/, "").trim();
+
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === agentMessage.id
-                      ? { ...m, content: accumulated, isStreaming: false }
+                      ? { ...m, content: displayContent, isStreaming: false, relatedMarketIds }
                       : m
                   )
                 );
               } else if (data.content) {
                 accumulated += data.content;
+                const displayContent = accumulated.replace(/\|\|MARKETS:?[\s\S]*$/, "").trim();
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === agentMessage.id
-                      ? { ...m, content: accumulated }
+                      ? { ...m, content: displayContent }
                       : m
                   )
                 );

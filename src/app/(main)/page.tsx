@@ -44,7 +44,6 @@ export default function Home() {
     const [showMarketPanel, setShowMarketPanel] = useState(false);
     const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
     const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
-    const [network, setNetwork] = useState<'devnet' | 'mainnet'>('mainnet');
 
     // ============= Wallet =============
     const { open } = useAppKit();
@@ -73,10 +72,6 @@ export default function Home() {
     useEffect(() => {
         setIsMounted(true);
         if (typeof window !== 'undefined') {
-            const savedNetwork = localStorage.getItem('frequencii_network') as 'devnet' | 'mainnet';
-            if (savedNetwork && (savedNetwork === 'devnet' || savedNetwork === 'mainnet')) {
-                setNetwork(savedNetwork);
-            }
             const savedContacts = localStorage.getItem('frequencii_contacts');
             if (savedContacts) {
                 try {
@@ -140,6 +135,7 @@ export default function Home() {
         timestamp: m.timestamp,
         type: m.role === "user" ? "user" : "agent",
         isStreaming: m.isStreaming,
+        relatedMarketIds: m.relatedMarketIds,
     }));
 
     // ============= Handlers =============
@@ -152,7 +148,7 @@ export default function Home() {
     const handleSendMessage = async (text: string) => {
         if (isFrequantRoom) {
             // In Frequant room: all messages go to AI agent
-            await agent.sendMessage(text, marketsHook.selectedMarket);
+            await agent.sendMessage(text, marketsHook.selectedMarket, marketsHook.markets);
             return;
         }
 
@@ -171,7 +167,7 @@ export default function Home() {
                 setMessages(prev => [...prev, userMsg]);
 
                 // Send to agent and inject response
-                await agent.sendMessage(query, marketsHook.selectedMarket);
+                await agent.sendMessage(query, marketsHook.selectedMarket, marketsHook.markets);
 
                 // Show market panel when agent is triggered
                 setShowMarketPanel(true);
@@ -189,7 +185,7 @@ export default function Home() {
         };
         setMessages(prev => [...prev, newMessage]);
 
-        if (network === 'devnet' && isConnected) {
+        if (isConnected) {
             try {
                 await rollup.sendMessage(text);
             } catch (e) {
@@ -228,29 +224,12 @@ export default function Home() {
             setSelectedRoom(newContact.id);
         }
 
-        if (isConnected && network === 'devnet') {
+        if (isConnected) {
             try {
                 await rollup.delegate();
             } catch (e) {
                 console.warn("Auto-delegation failed:", e);
             }
-        }
-    };
-
-    const handleNetworkChange = async (newNetwork: 'devnet' | 'mainnet') => {
-        if (isConnected) {
-            try {
-                setTimeout(async () => {
-                    try { await disconnect(); } catch (e) { console.warn("Disconnect error:", e); }
-                }, 0);
-            } catch (e) {
-                console.warn("Disconnect scheduling failed:", e);
-            }
-        }
-        setNetwork(newNetwork);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('frequencii_network', newNetwork);
-            window.location.reload();
         }
     };
 
@@ -289,37 +268,7 @@ export default function Home() {
                         Unstoppable, serverless messaging powered by Solana. Chat freely, predict privately.
                     </Text>
 
-                    {/* Feature cards */}
-                    <Row gap="m" style={{ flexWrap: "wrap", justifyContent: "center" }}>
-                        <Column
-                            padding="m"
-                            radius="l"
-                            border="neutral-alpha-medium"
-                            background="neutral-weak"
-                            gap="xs"
-                            style={{ maxWidth: '240px' }}
-                            center
-                        >
-                            <Text variant="heading-strong-s">P2P Chat</Text>
-                            <Text variant="body-default-xs" onBackground="neutral-weak">
-                                On-chain messaging via MagicBlock Ephemeral Rollups
-                            </Text>
-                        </Column>
-                        <Column
-                            padding="m"
-                            radius="l"
-                            border="neutral-alpha-medium"
-                            background="neutral-weak"
-                            gap="xs"
-                            center
-                            style={{ maxWidth: '240px' }}
-                        >
-                            <Text variant="heading-strong-s">AI Predictions</Text>
-                            <Text variant="body-default-xs" onBackground="neutral-weak">
-                                Private prediction trades with Frequant AI agent
-                            </Text>
-                        </Column>
-                    </Row>
+                    {/* Feature cards removed per request */}
 
                     <Button
                         id="connect-wallet"
@@ -350,8 +299,6 @@ export default function Home() {
                         onOpenAddContact={() => setIsAddContactModalOpen(true)}
                         onConnectWallet={open}
                         publicKeyString={address}
-                        network={network}
-                        onNetworkChange={handleNetworkChange}
                         onDelegate={async () => {
                             try {
                                 await rollup.delegate();
@@ -440,7 +387,6 @@ export default function Home() {
                 isOpen={isGiftModalOpen}
                 onClose={() => setIsGiftModalOpen(false)}
                 onSend={handleSendGift}
-                network={network}
                 recipientAddress={selectedContact?.name || ""}
             />
 

@@ -15,13 +15,12 @@ interface GiftModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSend: (amount: string, token: string) => void;
-    network: 'devnet' | 'mainnet';
     recipientAddress: string;
 }
 
 import { usePrivacyCash } from "@/lib/hooks/usePrivacyCash";
 
-export const GiftModal: React.FC<GiftModalProps> = ({ isOpen, onClose, onSend, network, recipientAddress }) => {
+export const GiftModal: React.FC<GiftModalProps> = ({ isOpen, onClose, onSend, recipientAddress }) => {
     const [giftAmount, setGiftAmount] = useState("");
     const [giftToken, setGiftToken] = useState("SOL");
     const [giftError, setGiftError] = useState("");
@@ -33,8 +32,7 @@ export const GiftModal: React.FC<GiftModalProps> = ({ isOpen, onClose, onSend, n
         address || null,
         giftToken,
         isConnected,
-        isOpen,
-        network
+        isOpen
     );
 
     const {

@@ -5,6 +5,7 @@ import {
   Text,
   Input,
   Button,
+  IconButton,
   Scroller,
 } from "@once-ui-system/core";
 import type { PredictionEvent, MarketCategory } from "@/lib/types";
@@ -58,6 +59,29 @@ export const MarketBrowser: React.FC<MarketBrowserProps> = ({
   activeCategory,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const observerTarget = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const currentObserverTarget = observerTarget.current;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoading) {
+          onLoadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (currentObserverTarget) {
+      observer.observe(currentObserverTarget);
+    }
+
+    return () => {
+      if (currentObserverTarget) {
+        observer.unobserve(currentObserverTarget);
+      }
+    };
+  }, [hasMore, isLoading, onLoadMore]);
   const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(
     null
   );
@@ -100,14 +124,13 @@ export const MarketBrowser: React.FC<MarketBrowserProps> = ({
         <Text variant="heading-strong-s" padding="s">
           Markets
         </Text>
-        <Button
+        <IconButton
           variant="tertiary"
           size="s"
           onClick={onRefresh}
-          loading={isLoading}
-        >
-          {isLoading ? "" : "Refresh"}
-        </Button>
+          icon="refresh"
+          tooltip="Refresh"
+        />
       </Row>
 
       {/* Search */}
@@ -164,17 +187,19 @@ export const MarketBrowser: React.FC<MarketBrowserProps> = ({
             ))
           )}
           {hasMore && (
-            <Column padding="s" center>
-              <Button
-                variant="tertiary"
-                size="s"
-                onClick={onLoadMore}
-                loading={isLoading}
-                fillWidth
-              >
-                Load More
-              </Button>
-            </Column>
+            <div ref={observerTarget}>
+              <Column padding="s" center>
+                <Button
+                  variant="tertiary"
+                  size="s"
+                  onClick={onLoadMore}
+                  loading={isLoading}
+                  fillWidth
+                >
+                  Load More
+                </Button>
+              </Column>
+            </div>
           )}
         </Column>
       </Scroller>

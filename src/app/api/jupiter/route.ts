@@ -81,9 +81,29 @@ function parseJupiterMarket(raw: any): PredictionMarket {
  */
 function parseJupiterEvent(raw: any): PredictionEvent {
   const metadata = raw.metadata || {};
-  const markets: PredictionMarket[] = Array.isArray(raw.markets)
+  let markets: PredictionMarket[] = Array.isArray(raw.markets)
     ? raw.markets.map(parseJupiterMarket)
     : [];
+
+  if (markets.length === 0) {
+    markets = [{
+      id: raw.eventId || "",
+      question: metadata.title || "",
+      slug: metadata.slug || raw.eventId || "",
+      outcomes: ["Yes", "No"],
+      outcomePrices: [0.5, 0.5],
+      volume: Number(raw.volumeUsd || 0) / 1_000_000,
+      endDate: metadata.closeTime || "",
+      startDate: raw.beginAt ? new Date(Number(raw.beginAt) * 1000).toISOString() : "",
+      active: raw.isActive ?? true,
+      closed: raw.resolution === "resolved",
+      image: metadata.imageUrl || "",
+      description: raw.closeCondition || "",
+      category: raw.category || "",
+      lastTradePrice: 0.5,
+      oneDayPriceChange: 0,
+    }];
+  }
 
   const volumeUsd = Number(raw.volumeUsd || 0) / 1_000_000;
   const volume24hr = Number(raw.volume24hr || 0) / 1_000_000;
@@ -158,7 +178,7 @@ export async function POST(request: NextRequest) {
           const cached = getCached<any>(cacheKey);
           if (cached) return NextResponse.json(cached);
 
-          const searchUrl = `${JUPITER_API_BASE}/events/search?query=${encodeURIComponent(search)}&limit=${limit}&offset=${offset}`;
+          const searchUrl = `${JUPITER_API_BASE}/events/search?query=${encodeURIComponent(search)}&limit=${limit}&start=${offset}`;
           const res = await fetch(searchUrl, { headers });
 
           if (!res.ok) {
@@ -182,7 +202,7 @@ export async function POST(request: NextRequest) {
           const response = {
             events: filtered,
             total: filtered.length,
-            hasMore: rawEvents.length >= limit,
+            hasMore: raw?.pagination?.hasNext ?? (rawEvents.length >= limit),
           };
 
           setCache(cacheKey, response);
@@ -195,7 +215,7 @@ export async function POST(request: NextRequest) {
         const cached = getCached<any>(cacheKey);
         if (cached) return NextResponse.json(cached);
 
-        let url = `${JUPITER_API_BASE}/events?limit=${limit}&offset=${offset}`;
+        let url = `${JUPITER_API_BASE}/events?limit=${limit}&start=${offset}`;
         if (cat) {
           url += `&category=${cat}`;
         }
@@ -224,7 +244,7 @@ export async function POST(request: NextRequest) {
         // Sort by volume descending (default)
         filtered.sort((a, b) => b.volume - a.volume);
 
-        const hasMoreFromApi = raw?.pagination?.hasMore ?? (rawEvents.length >= limit);
+        const hasMoreFromApi = raw?.pagination?.hasNext ?? (rawEvents.length >= limit);
 
         const response = {
           events: filtered,

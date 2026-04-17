@@ -63,6 +63,7 @@ export interface AgentMessage {
   content: string;
   timestamp: string;
   isStreaming?: boolean;
+  relatedMarketIds?: string[];
 }
 
 export interface AgentRequest {
@@ -166,4 +167,5 @@ export interface UnifiedMessage {
   txHash?: string;
   amount?: string;
   token?: string;
+  relatedMarketIds?: string[];
 }

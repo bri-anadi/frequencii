@@ -77,7 +77,7 @@ const siwxConfig = {
 
 createAppKit({
     adapters: [solanaWeb3JsAdapter],
-    networks: [customSolanaMainnet, customSolanaDevnet],
+    networks: [customSolanaMainnet], // Fully Mainnet
     metadata: {
         name: 'Frequencii',
         description: 'Frequencii World',
@@ -101,17 +101,8 @@ import { ConnectionProvider, WalletProvider as SolanaWalletProvider } from '@sol
 import { useMemo } from 'react';
 
 export function AppWalletProvider({ children }: { children: ReactNode }) {
-    // Default to devnet for now or determine based on env/storage
-    // Ideally this matches the network state, but for context init we can start with one.
-    // The WalletProvider internal logic handles network switching via AppKit usually,
-    // but standard hooks need a Connection.
-    const endpoint = useMemo(() => {
-        if (typeof window !== 'undefined') {
-            const stored = localStorage.getItem('frequencii_network');
-            if (stored === 'mainnet') return getHeliusUrl('mainnet');
-        }
-        return getHeliusUrl('devnet');
-    }, []);
+    // Hardcoded to mainnet
+    const endpoint = useMemo(() => getHeliusUrl('mainnet'), []);
 
     const wallets = useMemo(() => [
         new PhantomWalletAdapter(),

@@ -20,8 +20,6 @@ interface UnifiedSidebarProps {
     onOpenAddContact: () => void;
     onConnectWallet: () => void;
     publicKeyString?: string;
-    network: 'devnet' | 'mainnet';
-    onNetworkChange: (network: 'devnet' | 'mainnet') => void;
     onDelegate: () => void;
     onUndelegate: () => void;
 }
@@ -37,8 +35,6 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
     onOpenAddContact,
     onConnectWallet,
     publicKeyString,
-    network,
-    onNetworkChange,
     onDelegate,
     onUndelegate,
 }) => {
@@ -86,7 +82,7 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                             <Text variant="label-default-s">Frequant</Text>
                         </Row>
                         <Text variant="body-default-xs" onBackground="neutral-weak" truncate>
-                            AI Prediction Agent
+                            Prediction Agent
                         </Text>
                     </Column>
                 </Row>
@@ -161,33 +157,6 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                             tooltip={isCopied ? "Copied!" : "Copy Address"}
                         />
                     )}
-                </Row>
-
-                <Row
-                    fillWidth
-                    background="neutral-medium"
-                    radius="m"
-                    padding="2"
-                    gap="2"
-                    vertical="center"
-                    style={{ marginTop: '8px' }}
-                >
-                    <Button
-                        fillWidth
-                        variant={network === 'devnet' ? 'primary' : 'tertiary'}
-                        size="s"
-                        onClick={() => onNetworkChange('devnet')}
-                    >
-                        Devnet
-                    </Button>
-                    <Button
-                        fillWidth
-                        variant={network === 'mainnet' ? 'primary' : 'tertiary'}
-                        size="s"
-                        onClick={() => onNetworkChange('mainnet')}
-                    >
-                        Mainnet
-                    </Button>
                 </Row>
             </Column>
         </Column>

@@ -13,8 +13,7 @@ import { TradePanel } from "./TradePanel";
 import { PortfolioView } from "./PortfolioView";
 import { PrivateWalletSetup } from "./PrivateWalletSetup";
 
-type PanelView = "browse" | "detail" | "trade" | "portfolio" | "wallet_setup";
-
+type PanelView = "browse" | "detail" | "trade" | "portfolio";
 interface MarketPanelProps {
     visible: boolean;
     isMobile: boolean;
@@ -24,7 +23,7 @@ interface MarketPanelProps {
     isLoadingMarkets: boolean;
     hasMoreMarkets: boolean;
     activeCategory: MarketCategory;
-    onSelectMarket: (market: PredictionEvent) => void;
+    onSelectMarket: (market: PredictionEvent | null) => void;
     onCategoryChange: (cat: MarketCategory) => void;
     onSearchChange: (search: string) => void;
     onRefreshMarkets: () => void;
@@ -101,34 +100,31 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({
 
     // Render appropriate sub-panel
     const renderContent = () => {
-        if (panelView === "wallet_setup") {
-            return (
-                <PrivateWalletSetup
-                    isSetup={burnerIsSetup}
-                    isUnlocked={burnerIsUnlocked}
-                    publicKey={burnerPublicKey}
-                    balanceSol={burnerBalanceSol}
-                    step={burnerStep as any}
-                    stepMessage={burnerStepMessage}
-                    error={burnerError}
-                    privacyCashSigned={privacyCashSigned}
-                    onSetup={onSetupBurner}
-                    onUnlock={onUnlockBurner}
-                    onFund={onFundBurner}
-                    onReset={onResetBurner}
-                />
-            );
-        }
-
         if (panelView === "portfolio") {
             return (
-                <PortfolioView
-                    positions={positions}
-                    isLoading={isLoadingPositions}
-                    isTrading={isTrading}
-                    onRefresh={onRefreshPositions}
-                    onClaim={onClaimPayout}
-                />
+                <Column fillWidth fillHeight gap="s" style={{ overflowY: 'auto' }}>
+                    <PrivateWalletSetup
+                        isSetup={burnerIsSetup}
+                        isUnlocked={burnerIsUnlocked}
+                        publicKey={burnerPublicKey}
+                        balanceSol={burnerBalanceSol}
+                        step={burnerStep as any}
+                        stepMessage={burnerStepMessage}
+                        error={burnerError}
+                        privacyCashSigned={privacyCashSigned}
+                        onSetup={onSetupBurner}
+                        onUnlock={onUnlockBurner}
+                        onFund={onFundBurner}
+                        onReset={onResetBurner}
+                    />
+                    <PortfolioView
+                        positions={positions}
+                        isLoading={isLoadingPositions}
+                        isTrading={isTrading}
+                        onRefresh={onRefreshPositions}
+                        onClaim={onClaimPayout}
+                    />
+                </Column>
             );
         }
 
@@ -155,6 +151,7 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({
                     event={selectedMarket}
                     onClose={() => {
                         setPanelView("browse");
+                        onSelectMarket(null);
                     }}
                     onTrade={() => setPanelView("trade")}
                     isUnlocked={burnerIsUnlocked}
@@ -215,7 +212,10 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({
                     fillWidth
                     variant={panelView === "browse" || panelView === "detail" || panelView === "trade" ? "primary" : "tertiary"}
                     size="s"
-                    onClick={() => setPanelView("browse")}
+                    onClick={() => {
+                        setPanelView("browse");
+                        onSelectMarket(null);
+                    }}
                 >
                     Markets
                 </Button>
@@ -223,18 +223,14 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({
                     fillWidth
                     variant={panelView === "portfolio" ? "primary" : "tertiary"}
                     size="s"
-                    onClick={() => setPanelView("portfolio")}
+                    onClick={() => {
+                        setPanelView("portfolio");
+                        onSelectMarket(null);
+                    }}
                 >
                     Portfolio
                 </Button>
-                <Button
-                    fillWidth
-                    variant={panelView === "wallet_setup" ? "primary" : "tertiary"}
-                    size="s"
-                    onClick={() => setPanelView("wallet_setup")}
-                >
-                    Wallet
-                </Button>
+
                 {isMobile && onClose && (
                     <Button variant="tertiary" size="s" onClick={onClose}>
                         Close

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Column, Row, Text, Button, Input } from "@once-ui-system/core";
+import { Column, Row, Text, Button, Input, IconButton } from "@once-ui-system/core";
 import type { BurnerSetupStep } from "@/lib/types";
 
 interface PrivateWalletSetupProps {
@@ -350,29 +350,36 @@ export const PrivateWalletSetup: React.FC<PrivateWalletSetupProps> = ({
               type="number"
               value={fundAmount}
               onChange={(e) => setFundAmount(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  if (!isFunding && fundAmount) handleFund();
+                }
+              }}
               height="s"
               style={{ flex: 1 }}
               min="0.01"
               step="0.01"
               disabled={isFunding}
+              placeholder="0.01"
             />
             <Button
               variant="primary"
               onClick={handleFund}
               loading={isFunding}
               disabled={isFunding || !fundAmount}
-              size="s"
+              size="l"
             >
               Shield
             </Button>
-            <Button
+            <IconButton
               variant="tertiary"
               onClick={() => setShowFundForm(false)}
-              size="s"
+              size="l"
               disabled={isFunding}
-            >
-              Cancel
-            </Button>
+              icon="close"
+              tooltip="Cancel"
+            />
           </Row>
           <Text variant="body-default-xs" onBackground="neutral-weak" style={{ lineHeight: "1.5" }}>
             Funds flow: Main Wallet &gt; ZK Shielded Pool &gt; Private Wallet.
