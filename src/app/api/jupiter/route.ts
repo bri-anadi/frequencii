@@ -123,7 +123,15 @@ function mapCategory(category: string): string | null {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch (e) {
+      return NextResponse.json(
+        { error: "Invalid JSON body provided" },
+        { status: 400 }
+      );
+    }
     const { action } = body;
 
     if (!action) {
@@ -275,7 +283,7 @@ export async function POST(request: NextRequest) {
         }
 
         const res = await fetch(
-          `${JUPITER_API_BASE}/positions?wallet=${walletPubkey}`,
+          `${JUPITER_API_BASE}/positions?userPubkey=${walletPubkey}`,
           { headers }
         );
 

@@ -102,9 +102,6 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                 />
             </Column>
 
-            {/* Divider */}
-            <div style={{ height: 1, background: 'var(--neutral-alpha-medium)', margin: '4px 0' }} />
-
             {/* Contact list */}
             <Scroller fillWidth>
                 <Column gap="4" fillWidth>

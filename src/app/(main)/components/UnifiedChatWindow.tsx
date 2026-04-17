@@ -33,48 +33,35 @@ const QUICK_ACTIONS = [
     { label: "Compare with similar markets", requiresMarket: true },
 ];
 
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
 /**
- * Simple markdown-ish rendering: bold, line breaks, bullet points
+ * Custom components for rendering Markdown aligned with Once UI
  */
-function renderContent(content: string) {
-    if (!content) return null;
-
-    const lines = content.split("\n");
-    return lines.map((line, i) => {
-        // Bold: **text**
-        const formatted = line.replace(
-            /\*\*(.*?)\*\*/g,
-            '<strong>$1</strong>'
-        );
-
-        // Bullet points
-        if (line.trim().startsWith("- ") || line.trim().startsWith("* ")) {
-            return (
-                <div
-                    key={i}
-                    style={{ paddingLeft: "16px", marginBottom: "2px" }}
-                    dangerouslySetInnerHTML={{
-                        __html: `&bull; ${formatted.replace(/^[\s]*[-*]\s/, "")}`,
-                    }}
-                />
-            );
-        }
-
-        // Empty lines -> spacing
-        if (line.trim() === "") {
-            return <div key={i} style={{ height: "8px" }} />;
-        }
-
-        return (
-            <div
-                key={i}
-                style={{ marginBottom: "2px" }}
-                dangerouslySetInnerHTML={{ __html: formatted }}
-            />
-        );
-    });
-}
-
+const markdownComponents: any = {
+    h1: ({ node, ...props }: any) => <Text variant="heading-strong-l" style={{ marginTop: "12px", marginBottom: "8px", display: "block" }} {...props} />,
+    h2: ({ node, ...props }: any) => <Text variant="heading-strong-m" style={{ marginTop: "10px", marginBottom: "6px", display: "block" }} {...props} />,
+    h3: ({ node, ...props }: any) => <Text variant="heading-strong-s" style={{ marginTop: "8px", marginBottom: "4px", display: "block" }} {...props} />,
+    p: ({ node, ...props }: any) => <div style={{ marginBottom: "8px" }} {...props} />,
+    ul: ({ node, ...props }: any) => <ul style={{ paddingLeft: "16px", margin: "8px 0" }} {...props} />,
+    ol: ({ node, ...props }: any) => <ol style={{ paddingLeft: "16px", margin: "8px 0" }} {...props} />,
+    li: ({ node, ...props }: any) => <li style={{ marginBottom: "4px" }} {...props} />,
+    table: ({ node, ...props }: any) => (
+        <div style={{ overflowX: "auto", width: "100%", marginBottom: "12px", marginTop: "8px" }}>
+            <table style={{ width: "100%", tableLayout: "fixed", wordBreak: "break-word", borderCollapse: "collapse", fontSize: "0.875rem" }} {...props} />
+        </div>
+    ),
+    th: ({ node, ...props }: any) => (
+        <th style={{ borderBottom: "1px solid var(--neutral-alpha-medium)", padding: "6px 8px", textAlign: "left", fontWeight: "600", color: "var(--neutral-on-surface-strong)" }} {...props} />
+    ),
+    td: ({ node, ...props }: any) => (
+        <td style={{ borderBottom: "1px solid var(--neutral-alpha-weak)", padding: "6px 8px", color: "var(--neutral-on-surface-medium)" }} {...props} />
+    ),
+    hr: ({ node, ...props }: any) => <div style={{ height: 1, background: 'var(--neutral-alpha-medium)', margin: '16px 0' }} />,
+    em: ({ node, ...props }: any) => <span style={{ fontStyle: "italic", fontSize: "0.75rem", color: "var(--neutral-on-surface-weak)", display: "block", marginTop: "8px" }} {...props} />,
+    strong: ({ node, ...props }: any) => <strong style={{ fontWeight: "bold", color: "var(--neutral-on-surface-strong)" }} {...props} />
+};
 
 
 export const UnifiedChatWindow: React.FC<UnifiedChatWindowProps> = ({
@@ -269,7 +256,9 @@ export const UnifiedChatWindow: React.FC<UnifiedChatWindowProps> = ({
                                                         variant="body-default-s"
                                                         style={{ lineHeight: "1.5" }}
                                                     >
-                                                        {renderContent(msg.content)}
+                                                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                                            {msg.content}
+                                                        </ReactMarkdown>
                                                         {msg.isStreaming && (
                                                             <span
                                                                 style={{

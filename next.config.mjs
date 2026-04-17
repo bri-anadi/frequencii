@@ -27,6 +27,10 @@ const nextConfig = {
         )
       );
     }
+    config.ignoreWarnings = [
+      { module: /node_modules\/web-worker\/cjs\/node\.js/ },
+      { message: /the request of a dependency is an expression/ }
+    ];
     return config;
   },
 };
