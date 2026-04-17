@@ -23,6 +23,8 @@ export async function generateMetadata() {
   });
 }
 
+import Script from 'next/script';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -49,8 +51,9 @@ export default function RootLayout({
         path={meta.home.path}
       />
       <head>
-        <script
+        <Script
           id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               (function() {

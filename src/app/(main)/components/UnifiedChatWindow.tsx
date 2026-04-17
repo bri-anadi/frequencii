@@ -24,6 +24,8 @@ interface UnifiedChatWindowProps {
     onOpenGiftModal: () => void;
     onStopStreaming: () => void;
     onClearHistory: () => void;
+    trendingMarkets?: PredictionEvent[];
+    onMarketSelect?: (market: PredictionEvent) => void;
 }
 
 const QUICK_ACTIONS = [
@@ -76,8 +78,11 @@ export const UnifiedChatWindow: React.FC<UnifiedChatWindowProps> = ({
     onOpenGiftModal,
     onStopStreaming,
     onClearHistory,
+    trendingMarkets,
+    onMarketSelect,
 }) => {
     const [inputValue, setInputValue] = useState("");
+    const [isAiMode, setIsAiMode] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -93,7 +98,13 @@ export const UnifiedChatWindow: React.FC<UnifiedChatWindowProps> = ({
         if (!text) return;
         if (isAgentStreaming) return;
         setInputValue("");
-        onSendMessage(text);
+
+        if (!isFrequant && isAiMode) {
+            onSendMessage(`@agent ${text}`);
+            setIsAiMode(false); // Reset after sending optionally, or keep it on
+        } else {
+            onSendMessage(text);
+        }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -160,38 +171,133 @@ export const UnifiedChatWindow: React.FC<UnifiedChatWindowProps> = ({
                 <Scroller fillWidth fillHeight padding="m">
                     <Column gap="m" fillWidth>
                         {messages.length === 0 && isFrequant ? (
-                            <Column center fillWidth flex={1} gap="m" padding="l">
-                                <Text variant="heading-strong-m" onBackground="neutral-weak">
-                                    Frequant
-                                </Text>
-                                <Text
-                                    variant="body-default-s"
-                                    onBackground="neutral-weak"
-                                    style={{ textAlign: "center", maxWidth: "360px" }}
+                            <Column center fillWidth flex={1} padding="l">
+                                <Column
+                                    background="surface"
+                                    border="neutral-alpha-medium"
+                                    radius="l"
+                                    padding="l"
+                                    gap="m"
+                                    style={{ maxWidth: "500px", width: "100%", margin: "0 auto" }}
                                 >
-                                    Ask me about prediction markets, or select a market from the right panel.
-                                </Text>
-                                <Row gap="xs" style={{ flexWrap: "wrap", justifyContent: "center" }}>
-                                    {QUICK_ACTIONS.filter((a) => !a.requiresMarket).map((action) => (
-                                        <Button
-                                            key={action.label}
-                                            variant="secondary"
-                                            size="s"
-                                            onClick={() => handleQuickAction(action.label)}
-                                        >
-                                            {action.label}
-                                        </Button>
-                                    ))}
-                                </Row>
+                                    <Column gap="xs" center>
+                                        <Text variant="heading-strong-m">Frequant AI</Text>
+                                        <Text variant="body-default-s" onBackground="neutral-weak" style={{ textAlign: "center" }}>
+                                            Your on-chain Prediction Market Analyst. I can help you analyze events, assess risks, and track trends.
+                                        </Text>
+                                    </Column>
+
+                                    {selectedMarket ? (
+                                        <Column gap="s" center>
+                                            <Text variant="heading-strong-s">Market Analysis</Text>
+                                            <Text variant="body-default-s" onBackground="neutral-weak" style={{ textAlign: "center" }}>
+                                                Currently focused on: <strong>{selectedMarket.title}</strong>
+                                            </Text>
+                                            <Row gap="xs" style={{ flexWrap: "wrap", justifyContent: "center" }}>
+                                                {QUICK_ACTIONS.filter((a) => a.requiresMarket).map((action) => (
+                                                    <Button key={action.label} variant="secondary" size="s" onClick={() => handleQuickAction(action.label)}>
+                                                        {action.label}
+                                                    </Button>
+                                                ))}
+                                            </Row>
+                                        </Column>
+                                    ) : (
+                                        <Column gap="s" center fillWidth>
+                                            <Text variant="heading-strong-s">General Chat & Trending</Text>
+                                            <Text variant="body-default-s" onBackground="neutral-weak" style={{ textAlign: "center" }}>
+                                                Not sure where to start? Ask about trending markets or global events.
+                                            </Text>
+                                            
+                                            {trendingMarkets && trendingMarkets.length > 0 && (
+                                                <Column gap="xs" fillWidth paddingY="s">
+                                                    <Text variant="label-strong-s" onBackground="neutral-weak">Top Trending Markets</Text>
+                                                    {trendingMarkets.map(market => (
+                                                        <Button 
+                                                            key={market.id} 
+                                                            variant="secondary" 
+                                                            size="s" 
+                                                            onClick={() => {
+                                                                if (onMarketSelect) onMarketSelect(market);
+                                                                handleQuickAction(`Analyze this market: ${market.title}`);
+                                                            }}
+                                                            style={{ justifyContent: 'flex-start' }}
+                                                            fillWidth
+                                                        >
+                                                            <Text truncate>{market.title}</Text>
+                                                        </Button>
+                                                    ))}
+                                                </Column>
+                                            )}
+
+                                            <Row gap="xs" style={{ flexWrap: "wrap", justifyContent: "center" }}>
+                                                {QUICK_ACTIONS.filter((a) => !a.requiresMarket).map((action) => (
+                                                    <Button key={action.label} variant="tertiary" size="s" onClick={() => handleQuickAction(action.label)}>
+                                                        {action.label}
+                                                    </Button>
+                                                ))}
+                                            </Row>
+                                        </Column>
+                                    )}
+                                </Column>
                             </Column>
                         ) : messages.length === 0 && !isFrequant ? (
-                            <Column center fillWidth flex={1} gap="m" padding="l">
-                                <Text variant="heading-strong-m" onBackground="neutral-weak">
-                                    Start a conversation
-                                </Text>
-                                <Text variant="body-default-s" onBackground="neutral-weak" style={{ textAlign: "center" }}>
-                                    Messages are sent on-chain via MagicBlock. Type @agent to invoke Frequant.
-                                </Text>
+                            <Column center fillWidth flex={1} padding="l">
+                                <Column
+                                    background="surface"
+                                    border="neutral-alpha-medium"
+                                    radius="l"
+                                    padding="l"
+                                    gap="m"
+                                    style={{ maxWidth: "500px", width: "100%", margin: "0 auto" }}
+                                >
+                                    <Column gap="xs" center>
+                                        <Text variant="heading-strong-m">Start a conversation</Text>
+                                        <Text variant="body-default-s" onBackground="neutral-weak" style={{ textAlign: "center" }}>
+                                            Messages are sent on-chain via MagicBlock. Connect with others or ask Frequant for insights.
+                                        </Text>
+                                    </Column>
+
+                                    <div style={{ height: "1px", background: "var(--neutral-alpha-medium)", width: "100%" }} />
+
+                                    <Column gap="s" center fillWidth>
+                                        <Text variant="heading-strong-s">AI Assistant & Trending</Text>
+                                        <Text variant="body-default-s" onBackground="neutral-weak" style={{ textAlign: "center" }}>
+                                            Click the ✨ icon or select an action to invoke Frequant.
+                                        </Text>
+
+                                        {trendingMarkets && trendingMarkets.length > 0 && (
+                                            <Column gap="xs" fillWidth paddingY="s">
+                                                <Text variant="label-strong-s" onBackground="neutral-weak">Top Trending Markets</Text>
+                                                {trendingMarkets.map(market => (
+                                                    <Button 
+                                                        key={market.id} 
+                                                        variant="secondary" 
+                                                        size="s" 
+                                                        onClick={() => {
+                                                            if (onMarketSelect) onMarketSelect(market);
+                                                            onSendMessage(`@agent Analyze this market: ${market.title}`);
+                                                        }}
+                                                        style={{ justifyContent: 'flex-start' }}
+                                                        fillWidth
+                                                    >
+                                                        <Text truncate>{market.title}</Text>
+                                                    </Button>
+                                                ))}
+                                            </Column>
+                                        )}
+
+                                        <Row gap="xs" style={{ flexWrap: "wrap", justifyContent: "center" }}>
+                                            {QUICK_ACTIONS.filter((a) => !a.requiresMarket).map((action) => (
+                                                <Button key={action.label} variant="tertiary" size="s" onClick={() => {
+                                                    // Auto-prefix with @agent so the message goes to the AI in P2P chat
+                                                    onSendMessage(`@agent ${action.label}`);
+                                                }}>
+                                                    {action.label}
+                                                </Button>
+                                            ))}
+                                        </Row>
+                                    </Column>
+                                </Column>
                             </Column>
                         ) : (
                             messages.map((msg) => {
@@ -330,12 +436,22 @@ export const UnifiedChatWindow: React.FC<UnifiedChatWindowProps> = ({
                 vertical="center"
             >
                 {!isFrequant && (
-                    <Button
-                        variant="secondary"
-                        prefixIcon="rocket"
-                        size="l"
-                        onClick={onOpenGiftModal}
-                    />
+                    <Row gap="xs" vertical="center">
+                        <IconButton
+                            variant="secondary"
+                            icon="gift"
+                            size="m"
+                            onClick={onOpenGiftModal}
+                            tooltip="Send Gift"
+                        />
+                        <IconButton
+                            variant={isAiMode ? "primary" : "secondary"}
+                            icon="sparkle"
+                            size="m"
+                            onClick={() => setIsAiMode(!isAiMode)}
+                            tooltip="Ask Frequant (AI)"
+                        />
+                    </Row>
                 )}
                 <Input
                     id="unified-chat-input"
@@ -347,8 +463,10 @@ export const UnifiedChatWindow: React.FC<UnifiedChatWindowProps> = ({
                         isFrequant
                             ? (selectedMarket
                                 ? `Ask about "${selectedMarket.title.slice(0, 30)}..."`
-                                : "Ask about prediction markets...")
-                            : "Type a message... (@agent for AI)"
+                                : "Ask general AI...")
+                            : isAiMode
+                                ? "Ask Frequant (AI)..."
+                                : "Type a message..."
                     }
                     disabled={isAgentStreaming}
                 />

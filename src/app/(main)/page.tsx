@@ -33,6 +33,7 @@ import { AddContactModal } from './components/AddContactModal';
 
 export default function Home() {
     // ============= App State =============
+    const [isMounted, setIsMounted] = useState(false);
     const [messages, setMessages] = useState<UnifiedMessage[]>([]);
     const [contacts, setContacts] = useState<any[]>([]);
     const [selectedRoom, setSelectedRoom] = useState<string | null>("frequant");
@@ -70,6 +71,7 @@ export default function Home() {
 
     // ============= Persistence =============
     useEffect(() => {
+        setIsMounted(true);
         if (typeof window !== 'undefined') {
             const savedNetwork = localStorage.getItem('frequencii_network') as 'devnet' | 'mainnet';
             if (savedNetwork && (savedNetwork === 'devnet' || savedNetwork === 'mainnet')) {
@@ -258,6 +260,8 @@ export default function Home() {
         : messages;
 
     // ============= Wallet Gate =============
+    if (!isMounted) return null;
+
     if (!isConnected) {
         return (
             <Column fillWidth center padding="l" style={{ minHeight: "100vh" }}>
@@ -374,6 +378,8 @@ export default function Home() {
                         messages={currentMessages}
                         isAgentStreaming={agent.isStreaming}
                         selectedMarket={marketsHook.selectedMarket}
+                        trendingMarkets={marketsHook.markets.slice(0, 3)}
+                        onMarketSelect={marketsHook.selectMarket}
                         onSendMessage={handleSendMessage}
                         onBack={() => setShowChat(false)}
                         onOpenGiftModal={() => setIsGiftModalOpen(true)}
