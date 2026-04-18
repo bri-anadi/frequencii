@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { Column, Row, Text, Button, Scroller } from "@once-ui-system/core";
+import { Column, Row, Text, Button, IconButton, Scroller } from "@once-ui-system/core";
 import type {
     PredictionEvent,
+    PredictionMarket,
     MarketCategory,
     TradeOutcome,
     TradeStep,
@@ -95,6 +96,7 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({
     onClose,
 }) => {
     const [panelView, setPanelView] = useState<PanelView>("browse");
+    const [selectedTradeMarket, setSelectedTradeMarket] = useState<PredictionMarket | null>(null);
 
     if (!visible) return null;
 
@@ -128,10 +130,11 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({
             );
         }
 
-        if (panelView === "trade" && selectedMarket) {
+        if (panelView === "trade" && selectedMarket && selectedTradeMarket) {
             return (
                 <TradePanel
                     event={selectedMarket}
+                    market={selectedTradeMarket}
                     burnerBalanceSol={burnerBalanceSol}
                     isUnlocked={burnerIsUnlocked}
                     tradeStep={tradeStep}
@@ -153,7 +156,10 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({
                         setPanelView("browse");
                         onSelectMarket(null);
                     }}
-                    onTrade={() => setPanelView("trade")}
+                    onTrade={(market: PredictionMarket) => {
+                        setSelectedTradeMarket(market);
+                        setPanelView("trade");
+                    }}
                     isUnlocked={burnerIsUnlocked}
                 />
             );
@@ -185,19 +191,12 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({
             fillWidth={isMobile}
             style={
                 isMobile
-                    ? {
-                        position: 'fixed',
-                        top: 0,
-                        right: 0,
-                        bottom: 0,
-                        width: '100%',
-                        zIndex: 100,
-                        backgroundColor: 'var(--surface-background)',
-                    }
+                    ? { height: '100dvh' }
                     : { maxWidth: '360px', minWidth: '360px' }
             }
             fillHeight
             gap="xs"
+            background={isMobile ? "surface" : undefined}
         >
             {/* Panel navigation tabs */}
             <Row
@@ -232,9 +231,13 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({
                 </Button>
 
                 {isMobile && onClose && (
-                    <Button variant="tertiary" size="s" onClick={onClose}>
-                        Close
-                    </Button>
+                    <IconButton
+                        icon="chevronLeft"
+                        variant="tertiary"
+                        size="m"
+                        onClick={onClose}
+                        tooltip="Back"
+                    />
                 )}
             </Row>
 

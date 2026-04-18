@@ -195,9 +195,7 @@ export async function POST(request: NextRequest) {
             : (raw.data || raw.events || []);
           const events: PredictionEvent[] = rawEvents.map(parseJupiterEvent);
 
-          const filtered = events.filter(
-            (e) => e.markets.length > 0 && e.active && e.volume > 0
-          );
+          const filtered = events;
 
           const response = {
             events: filtered,

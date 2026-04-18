@@ -1,11 +1,11 @@
-import React from "react";
-import { Column, Row, Text, Button, Badge } from "@once-ui-system/core";
-import type { PredictionEvent } from "@/lib/types";
+import React, { useState } from "react";
+import { Column, Row, Text, Button, Badge, IconButton } from "@once-ui-system/core";
+import type { PredictionEvent, PredictionMarket } from "@/lib/types";
 
 interface MarketDetailProps {
   event: PredictionEvent;
   onClose: () => void;
-  onTrade?: () => void;
+  onTrade?: (market: PredictionMarket) => void;
   isUnlocked?: boolean;
 }
 
@@ -15,11 +15,7 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({
   onTrade,
   isUnlocked = false,
 }) => {
-  const market = event.markets[0];
-  const yesPrice = market?.outcomePrices?.[0] ?? 0.5;
-  const noPrice = market?.outcomePrices?.[1] ?? 0.5;
-  const yesPercent = Math.round(yesPrice * 100);
-  const noPercent = Math.round(noPrice * 100);
+  const [showAllMarkets, setShowAllMarkets] = useState(false);
 
   const formatVolume = (vol: number) => {
     if (vol >= 1_000_000) return `$${(vol / 1_000_000).toFixed(1)}M`;
@@ -53,44 +49,62 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({
     }
   };
 
+  // Sort markets by highest Yes probability descending
+  const sortedMarkets = [...event.markets].sort((a, b) => {
+    const aYes = a.outcomePrices?.[0] || 0;
+    const bYes = b.outcomePrices?.[0] || 0;
+    return bYes - aYes;
+  });
+
+  const topMarketsCount = 5;
+  const visibleMarkets = showAllMarkets ? sortedMarkets : sortedMarkets.slice(0, topMarketsCount);
+  const hasMoreMarkets = sortedMarkets.length > topMarketsCount;
+
   return (
     <Column
       fillWidth
+      fillHeight
       padding="m"
       gap="m"
       border="neutral-alpha-medium"
       radius="l"
       background="neutral-weak"
-      style={{ overflow: "hidden" }}
+      style={{ overflowY: "auto", overflowX: "hidden", position: "relative" }}
     >
+      {/* Top right close button */}
+      <div style={{ position: "absolute", top: "16px", right: "16px", zIndex: 10 }}>
+        <IconButton
+          variant="secondary"
+          icon="close"
+          size="m"
+          onClick={onClose}
+          tooltip="Close"
+        />
+      </div>
       {/* Banner Image */}
       {event.image && (
-        <div style={{ 
-          width: '100%', 
-          height: '140px', 
+        <div style={{
+          width: '100%',
+          height: '140px',
           borderRadius: '8px',
           overflow: 'hidden',
           marginBottom: '8px'
         }}>
-          <img 
-            src={event.image} 
-            alt={event.title} 
+          <img
+            src={event.image}
+            alt={event.title}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none';
-            }} 
+            }}
           />
         </div>
       )}
 
-      {/* Header */}
-      <Row fillWidth vertical="center" style={{ justifyContent: "space-between" }}>
-        <Text variant="heading-strong-s" style={{ maxWidth: "85%" }}>
+      <Row fillWidth vertical="center">
+        <Text variant="heading-strong-s" style={{ maxWidth: "85%", paddingRight: "32px" }}>
           {event.title}
         </Text>
-        <Button variant="tertiary" size="s" onClick={onClose}>
-          Close
-        </Button>
       </Row>
 
       {/* Category + time */}
@@ -105,70 +119,91 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({
         )}
       </Row>
 
-      {/* Odds display */}
-      <Column gap="xs">
-        <Row fillWidth gap="s">
-          <Column
-            flex={1}
-            padding="s"
-            radius="m"
-            center
-            style={{
-              background: "var(--success-alpha-weak, rgba(34,197,94,0.1))",
-              border: "1px solid var(--success-solid-strong)",
-            }}
-          >
-            <Text variant="heading-strong-l" style={{ color: "var(--success-solid-strong)" }}>
-              {yesPercent}%
-            </Text>
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              YES
-            </Text>
-          </Column>
+      {/* Sub-Markets List */}
+      <Column fillWidth style={{ marginTop: "8px" }}>
+        <Column fillWidth>
+          {visibleMarkets.map((market, index) => {
+            const yesPrice = market?.outcomePrices?.[0] ?? 0;
+            const noPrice = market?.outcomePrices?.[1] ?? Math.max(1 - yesPrice, 0.001);
+            const yesChance = Math.round(yesPrice * 100);
 
-          <Column
-            flex={1}
-            padding="s"
-            radius="m"
-            center
-            style={{
-              background: "var(--danger-alpha-weak, rgba(239,68,68,0.1))",
-              border: "1px solid var(--danger-solid-strong, #ef4444)",
-            }}
-          >
-            <Text variant="heading-strong-l" style={{ color: "var(--danger-solid-strong, #ef4444)" }}>
-              {noPercent}%
-            </Text>
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              NO
-            </Text>
-          </Column>
-        </Row>
+            return (
+              <Column
+                key={market.id || index}
+                fillWidth
+                paddingY="m"
+                paddingX="xs"
+                gap="12"
+                style={{
+                  borderBottom: "1px solid var(--neutral-alpha-medium)",
+                }}
+              >
+                {/* Row 1: Name and Chance */}
+                <Row fillWidth vertical="center" justify="space-between">
+                  <Column flex={1} gap="2" style={{ paddingRight: "16px" }}>
+                    <Text variant="body-strong-s" style={{ whiteSpace: "normal" }}>
+                      {market.question || event.title}
+                    </Text>
+                    <Text variant="body-default-xs" onBackground="neutral-weak">
+                      ${market.volume?.toLocaleString() || "0"} vol
+                    </Text>
+                  </Column>
 
-        {/* Odds bar */}
-        <Row
-          fillWidth
-          style={{ height: "8px", borderRadius: "4px", overflow: "hidden" }}
-        >
-          <div
-            style={{
-              width: `${yesPercent}%`,
-              background: "var(--success-solid-strong)",
-              transition: "width 0.3s ease",
-            }}
-          />
-          <div
-            style={{
-              width: `${noPercent}%`,
-              background: "var(--danger-solid-strong, #ef4444)",
-              transition: "width 0.3s ease",
-            }}
-          />
-        </Row>
+                  <Column align="end" justify="center">
+                    <Text variant="heading-strong-m">
+                      {yesChance}%
+                    </Text>
+                  </Column>
+                </Row>
+
+                {/* Row 2: Yes and No buttons */}
+                {onTrade && (
+                  <Row gap="s" fillWidth>
+                    <Button
+                      variant="secondary"
+                      size="m"
+                      disabled={!isUnlocked || !event.active}
+                      onClick={() => onTrade(market)}
+                      style={{ flex: 1, color: "var(--success-solid-strong)", borderColor: "var(--success-alpha-medium)", borderWidth: "1px" }}
+                    >
+                      Yes {(yesPrice * 100).toFixed(1)}¢
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="m"
+                      disabled={!isUnlocked || !event.active}
+                      onClick={() => onTrade(market)}
+                      style={{ flex: 1, color: "var(--brand-solid-strong)", borderColor: "var(--brand-alpha-medium)", borderWidth: "1px" }}
+                    >
+                      No {(noPrice * 100).toFixed(1)}¢
+                    </Button>
+                  </Row>
+                )}
+              </Column>
+            );
+          })}
+        </Column>
+        {hasMoreMarkets && (
+          <Button
+            variant="tertiary"
+            size="s"
+            onClick={() => setShowAllMarkets(!showAllMarkets)}
+            style={{ marginTop: "4px" }}
+          >
+            {showAllMarkets ? "Show Less" : `Show ${sortedMarkets.length - topMarketsCount} More Options`}
+          </Button>
+        )}
       </Column>
 
+      {/* Lock Warning */}
+      {!isUnlocked && (
+        <Text variant="body-default-xs" style={{ color: "var(--danger-solid-strong, #ef4444)", textAlign: "center", marginTop: "8px" }}>
+          Setup or unlock Private Wallet to trade.
+        </Text>
+      )}
+
       {/* Stats */}
-      <Row fillWidth gap="m" style={{ flexWrap: "wrap" }}>
+      <Row fillWidth gap="m" style={{ flexWrap: "wrap", marginTop: "16px" }}>
         <Column gap="2">
           <Text variant="body-default-xs" onBackground="neutral-weak">
             Volume
@@ -187,34 +222,15 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({
           </Text>
           <Text variant="label-default-s">{formatDate(event.endDate)}</Text>
         </Column>
-        {market?.oneDayPriceChange !== undefined && market.oneDayPriceChange !== 0 && (
-          <Column gap="2">
-            <Text variant="body-default-xs" onBackground="neutral-weak">
-              24h Change
-            </Text>
-            <Text
-              variant="label-default-s"
-              style={{
-                color:
-                  market.oneDayPriceChange > 0
-                    ? "var(--success-solid-strong)"
-                    : "var(--danger-solid-strong, #ef4444)",
-              }}
-            >
-              {market.oneDayPriceChange > 0 ? "+" : ""}
-              {(market.oneDayPriceChange * 100).toFixed(1)}%
-            </Text>
-          </Column>
-        )}
       </Row>
 
       {/* Description */}
       {event.description && (
-        <Column gap="xs">
+        <Column gap="xs" style={{ marginTop: "16px" }}>
           <Text variant="label-default-xs" onBackground="neutral-weak">
             Description
           </Text>
-            <Text
+          <Text
             variant="body-default-s"
             style={{
               lineHeight: "1.5",
@@ -226,16 +242,6 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({
           </Text>
         </Column>
       )}
-
-      {/* Trade button */}
-      <Button
-        variant="primary"
-        fillWidth
-        disabled={!isUnlocked}
-        onClick={onTrade}
-      >
-        {isUnlocked ? "Trade Privately" : "Setup Private Wallet to Trade"}
-      </Button>
     </Column>
   );
 };

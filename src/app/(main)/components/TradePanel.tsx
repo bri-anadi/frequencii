@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { Column, Row, Text, Button, Input } from "@once-ui-system/core";
-import type { PredictionEvent, TradeOutcome, TradeStep } from "@/lib/types";
+import { Column, Row, Text, Button, Input, IconButton } from "@once-ui-system/core";
+import type { PredictionEvent, PredictionMarket, TradeOutcome, TradeStep } from "@/lib/types";
 
 interface TradePanelProps {
   event: PredictionEvent;
+  market: PredictionMarket;
   burnerBalanceSol: number;
   isUnlocked: boolean;
   tradeStep: TradeStep;
@@ -27,6 +28,7 @@ const STEP_LABELS: Record<TradeStep, string> = {
 
 export const TradePanel: React.FC<TradePanelProps> = ({
   event,
+  market,
   burnerBalanceSol,
   isUnlocked,
   tradeStep,
@@ -40,7 +42,6 @@ export const TradePanel: React.FC<TradePanelProps> = ({
   const [selectedOutcome, setSelectedOutcome] = useState<TradeOutcome>("YES");
   const [amount, setAmount] = useState("0.1");
 
-  const market = event.markets[0];
   const yesPrice = market?.outcomePrices?.[0] ?? 0.5;
   const noPrice = market?.outcomePrices?.[1] ?? 0.5;
 
@@ -90,14 +91,29 @@ export const TradePanel: React.FC<TradePanelProps> = ({
     >
       <Row fillWidth vertical="center" style={{ justifyContent: "space-between" }}>
         <Text variant="heading-strong-s">Trade Privately</Text>
-        <Button variant="tertiary" size="s" onClick={onClose}>
-          Close
-        </Button>
+        <IconButton
+          variant="secondary"
+          icon="close"
+          size="m"
+          onClick={onClose}
+          tooltip="Close"
+        />
       </Row>
 
-      <Text variant="body-default-xs" onBackground="neutral-weak">
-        {event.title}
-      </Text>
+      {market.question !== event.title ? (
+        <Column gap="4">
+          <Text variant="body-default-xs" onBackground="neutral-weak">
+            {event.title}
+          </Text>
+          <Text variant="body-strong-s">
+            {market.question}
+          </Text>
+        </Column>
+      ) : (
+        <Text variant="body-default-xs" onBackground="neutral-weak">
+          {event.title}
+        </Text>
+      )}
 
       {/* Outcome selector */}
       <Row fillWidth gap="s">
@@ -112,7 +128,7 @@ export const TradePanel: React.FC<TradePanelProps> = ({
           }}
           disabled={isTrading}
         >
-          YES ({Math.round(yesPrice * 100)}%)
+          YES ({(yesPrice * 100).toFixed(1)}c)
         </Button>
         <Button
           variant={selectedOutcome === "NO" ? "primary" : "tertiary"}
@@ -127,7 +143,7 @@ export const TradePanel: React.FC<TradePanelProps> = ({
           }}
           disabled={isTrading}
         >
-          NO ({Math.round(noPrice * 100)}%)
+          NO ({(noPrice * 100).toFixed(1)}c)
         </Button>
       </Row>
 
@@ -139,16 +155,46 @@ export const TradePanel: React.FC<TradePanelProps> = ({
             Balance: {burnerBalanceSol.toFixed(4)} SOL
           </Text>
         </Row>
-        <Input
-          id="trade-amount"
-          type="number"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          height="s"
-          min="0.01"
-          step="0.01"
-          disabled={isTrading}
-        />
+        <Row
+          fillWidth
+          gap="xs"
+          padding="xs"
+          border="neutral-alpha-medium"
+          radius="l"
+          background="neutral-weak"
+          vertical="center"
+        >
+          <Input
+            id="trade-amount"
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            height="s"
+            min="0.01"
+            step="0.01"
+            style={{ flex: 1 }}
+            disabled={isTrading}
+            placeholder="0.1"
+          />
+          {tradeStep === "idle" && (
+            <Button
+              variant="primary"
+              size="s"
+              onClick={handleTrade}
+              loading={isTrading}
+              disabled={
+                isTrading ||
+                !amount ||
+                parseFloat(amount) <= 0 ||
+                parseFloat(amount) > burnerBalanceSol
+              }
+            >
+              {parseFloat(amount) > burnerBalanceSol
+                ? "Insufficient Drip"
+                : `Trade ${selectedOutcome}`}
+            </Button>
+          )}
+        </Row>
       </Column>
 
       {/* Potential payout calculation */}
@@ -164,7 +210,7 @@ export const TradePanel: React.FC<TradePanelProps> = ({
               Implied probability
             </Text>
             <Text variant="label-default-xs">
-              {Math.round(selectedPrice * 100)}%
+              {(selectedPrice * 100).toFixed(1)}c
             </Text>
           </Row>
           <Row fillWidth style={{ justifyContent: "space-between" }}>
@@ -236,25 +282,7 @@ export const TradePanel: React.FC<TradePanelProps> = ({
         </Text>
       )}
 
-      {/* Execute button */}
-      {tradeStep === "idle" && (
-        <Button
-          variant="primary"
-          fillWidth
-          onClick={handleTrade}
-          loading={isTrading}
-          disabled={
-            isTrading ||
-            !amount ||
-            parseFloat(amount) <= 0 ||
-            parseFloat(amount) > burnerBalanceSol
-          }
-        >
-          {parseFloat(amount) > burnerBalanceSol
-            ? "Insufficient Private Balance"
-            : `Trade ${selectedOutcome} with Private Wallet`}
-        </Button>
-      )}
+
 
       <Text variant="body-default-xs" onBackground="neutral-weak" style={{ fontSize: "10px" }}>
         This trade will be signed by your private wallet. Your main wallet identity is not linked to this position.

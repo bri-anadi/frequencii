@@ -29,6 +29,7 @@ interface UnifiedChatWindowProps {
     onClearHistory: () => void;
     trendingMarkets?: PredictionEvent[];
     onMarketSelect?: (market: PredictionEvent) => void;
+    onOpenMarket?: () => void;
 }
 
 const QUICK_ACTIONS = [
@@ -81,6 +82,7 @@ export const UnifiedChatWindow: React.FC<UnifiedChatWindowProps> = ({
     onClearHistory,
     trendingMarkets,
     onMarketSelect,
+    onOpenMarket,
 }) => {
     const [inputValue, setInputValue] = useState("");
     const [isAiMode, setIsAiMode] = useState(false);
@@ -125,10 +127,11 @@ export const UnifiedChatWindow: React.FC<UnifiedChatWindowProps> = ({
     return (
         <Column
             fillWidth
-            border="neutral-alpha-medium"
-            radius="l"
+            border={isMobile ? undefined : "neutral-alpha-medium"}
+            radius={isMobile ? undefined : "l"}
             background="surface"
             overflow="hidden"
+            style={isMobile ? { height: "100dvh" } : {}}
         >
             {/* Header */}
             <Row
@@ -358,7 +361,7 @@ export const UnifiedChatWindow: React.FC<UnifiedChatWindowProps> = ({
                                             </Column>
                                         ) : isAgent ? (
                                             <Column fillWidth gap="s">
-                                                <Column gap="xs" style={{ maxWidth: "80%" }}>
+                                                <Column gap="xs" style={{ maxWidth: isMobile ? "92%" : "80%" }}>
                                                     <Row gap="xs">
                                                         <Column
                                                             padding="s"
@@ -422,7 +425,7 @@ export const UnifiedChatWindow: React.FC<UnifiedChatWindowProps> = ({
                                                 radius="l"
                                                 background={isMine ? "brand-medium" : "neutral-medium"}
                                                 style={{
-                                                    maxWidth: "60%",
+                                                    maxWidth: isMobile ? "85%" : "60%",
                                                     borderBottomRightRadius: isMine ? "4px" : "var(--radius-l)",
                                                     borderBottomLeftRadius: isMine ? "var(--radius-l)" : "4px"
                                                 }}
@@ -467,6 +470,15 @@ export const UnifiedChatWindow: React.FC<UnifiedChatWindowProps> = ({
                 background="neutral-weak"
                 vertical="center"
             >
+                {isMobile && onOpenMarket && (
+                    <IconButton
+                        variant="secondary"
+                        icon="barChart2"
+                        size="m"
+                        onClick={onOpenMarket}
+                        tooltip="Markets"
+                    />
+                )}
                 {!isFrequant && (
                     <Row gap="xs" vertical="center">
                         <IconButton

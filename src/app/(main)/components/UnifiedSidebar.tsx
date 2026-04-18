@@ -56,9 +56,13 @@ export const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
     return (
         <Column
             fillWidth={isMobile}
-            style={!isMobile ? { maxWidth: '300px', minWidth: '300px' } : {}}
-            border="neutral-alpha-medium"
-            radius="l"
+            style={
+                isMobile
+                    ? { height: '100dvh' }
+                    : { maxWidth: '300px', minWidth: '300px' }
+            }
+            border={isMobile ? undefined : "neutral-alpha-medium"}
+            radius={isMobile ? undefined : "l"}
             background="neutral-weak"
             padding="s"
             gap="xs"

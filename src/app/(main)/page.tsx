@@ -145,6 +145,13 @@ export default function Home() {
         setShowMarketPanel(false); // Reset panel toggle for contact rooms
     };
 
+    const handleSelectMarket = (market: PredictionEvent | null) => {
+        marketsHook.selectMarket(market);
+        if (isMobile && market) {
+            setShowMarketPanel(true);
+        }
+    };
+
     const handleSendMessage = async (text: string) => {
         if (isFrequantRoom) {
             // In Frequant room: all messages go to AI agent
@@ -285,11 +292,15 @@ export default function Home() {
     }
 
     // ============= Main Unified Layout =============
+    const showSidebarMobile = isMobile && !showChat && !showMarketPanel;
+    const showChatMobile = isMobile && showChat && !showMarketPanel;
+    const showMarketMobile = isMobile && showMarketPanel;
+
     return (
         <>
-            <Flex fillWidth style={{ height: "100vh" }} padding="m" gap="m">
+            <Flex fillWidth style={{ height: "100dvh" }} padding={isMobile ? "0" : "m"} gap="m">
                 {/* LEFT: Sidebar */}
-                {(!isMobile || !showChat) && (
+                {(!isMobile || showSidebarMobile) && (
                     <UnifiedSidebar
                         isMobile={isMobile}
                         contacts={contacts}
@@ -317,7 +328,7 @@ export default function Home() {
                 )}
 
                 {/* CENTER: Chat Window */}
-                {(!isMobile || showChat) && (
+                {(!isMobile || showChatMobile) && (
                     <UnifiedChatWindow
                         isMobile={isMobile}
                         roomType={isFrequantRoom ? "frequant" : "contact"}
@@ -326,17 +337,18 @@ export default function Home() {
                         isAgentStreaming={agent.isStreaming}
                         selectedMarket={marketsHook.selectedMarket}
                         trendingMarkets={marketsHook.markets.slice(0, 3)}
-                        onMarketSelect={marketsHook.selectMarket}
+                        onMarketSelect={handleSelectMarket}
                         onSendMessage={handleSendMessage}
                         onBack={() => setShowChat(false)}
                         onOpenGiftModal={() => setIsGiftModalOpen(true)}
                         onStopStreaming={agent.stopStreaming}
                         onClearHistory={agent.clearHistory}
+                        onOpenMarket={() => setShowMarketPanel(true)}
                     />
                 )}
 
                 {/* RIGHT: Market Panel */}
-                {(!isMobile || !showChat) && (
+                {(!isMobile || showMarketMobile) && (
                     <MarketPanel
                         visible={isMarketPanelVisible}
                         isMobile={isMobile}
@@ -346,7 +358,7 @@ export default function Home() {
                         isLoadingMarkets={marketsHook.isLoading}
                         hasMoreMarkets={marketsHook.hasMore}
                         activeCategory={marketsHook.filters.category}
-                        onSelectMarket={marketsHook.selectMarket}
+                        onSelectMarket={handleSelectMarket}
                         onCategoryChange={marketsHook.updateCategory}
                         onSearchChange={marketsHook.updateSearch}
                         onRefreshMarkets={marketsHook.refetch}

@@ -13,11 +13,17 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   isSelected,
   onClick,
 }) => {
-  const market = event.markets[0];
+  const sortedMarkets = [...(event.markets || [])].sort((a, b) => {
+    const aYes = a.outcomePrices?.[0] ?? 0;
+    const bYes = b.outcomePrices?.[0] ?? 0;
+    return bYes - aYes; // Highest YES probability first
+  });
+
+  const market = sortedMarkets[0];
   const yesPrice = market?.outcomePrices?.[0] ?? 0.5;
   const noPrice = market?.outcomePrices?.[1] ?? 0.5;
-  const yesPercent = Math.round(yesPrice * 100);
-  const noPercent = Math.round(noPrice * 100);
+  const yesPercent = (yesPrice * 100).toFixed(1);
+  const noPercent = (noPrice * 100).toFixed(1);
 
   const formatVolume = (vol: number) => {
     if (vol >= 1_000_000) return `$${(vol / 1_000_000).toFixed(1)}M`;
@@ -92,6 +98,16 @@ export const MarketCard: React.FC<MarketCardProps> = ({
             <Text variant="body-default-xs" onBackground="neutral-weak">
               {getDaysLeft(event.endDate) || (event.active ? 'Active' : 'Closed')}
             </Text>
+            {event.markets.length > 1 && (
+              <>
+                <Text variant="body-default-xs" onBackground="neutral-weak">
+                  •
+                </Text>
+                <Text variant="body-default-xs" onBackground="neutral-weak">
+                  {event.markets.length} Options
+                </Text>
+              </>
+            )}
           </Row>
           {event.description && (
             <Text variant="body-default-xs" onBackground="neutral-weak" style={{
@@ -112,45 +128,89 @@ export const MarketCard: React.FC<MarketCardProps> = ({
       </Row>
 
       {/* Odds bar */}
-      <Row fillWidth gap="2" style={{ height: "6px", borderRadius: "3px", overflow: "hidden" }}>
-        <div
-          style={{
-            width: `${yesPercent}%`,
-            backgroundColor: "var(--success-solid-strong)",
-            transition: "width 0.3s ease",
-          }}
-        />
-        <div
-          style={{
-            width: `${noPercent}%`,
-            backgroundColor: "var(--danger-solid-strong, #ef4444)",
-            transition: "width 0.3s ease",
-          }}
-        />
-      </Row>
+      {event.markets.length > 1 ? (
+        <>
+          <Row fillWidth gap="2" style={{ height: "6px", borderRadius: "3px", overflow: "hidden" }}>
+            <div
+              style={{
+                width: `${yesPercent}%`,
+                backgroundColor: "var(--success-solid-strong)",
+                transition: "width 0.3s ease",
+              }}
+            />
+            <div
+              style={{
+                width: `${100 - yesPercent}%`,
+                backgroundColor: "var(--neutral-alpha-weak)",
+                transition: "width 0.3s ease",
+              }}
+            />
+          </Row>
 
-      <Row fillWidth vertical="center" style={{ justifyContent: "space-between" }}>
-        <Row gap="xs">
-          <Text
-            variant="body-default-xs"
-            style={{ color: "var(--success-solid-strong)" }}
-          >
-            Yes {yesPercent}%
-          </Text>
-          <Text variant="body-default-xs" onBackground="neutral-weak">
-            /
-          </Text>
-          <Text
-            variant="body-default-xs"
-            style={{ color: "var(--danger-solid-strong, #ef4444)" }}
-          >
-            No {noPercent}%
-          </Text>
-        </Row>
-        <Text variant="body-default-xs" onBackground="neutral-weak">
-          {formatVolume(event.volume)}
-        </Text>
-      </Row>
+          <Row fillWidth vertical="center" style={{ justifyContent: "space-between" }}>
+            <Row gap="xs" vertical="center" style={{ overflow: 'hidden' }}>
+              <Text
+                variant="body-default-xs"
+                style={{
+                  color: "var(--success-solid-strong)",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  maxWidth: "200px"
+                }}
+                title={market?.question}
+              >
+               Top {yesPercent}c: {market?.question || 'Option'}
+              </Text>
+            </Row>
+            <Text variant="body-default-xs" onBackground="neutral-weak" style={{ flexShrink: 0 }}>
+              {formatVolume(event.volume)}
+            </Text>
+          </Row>
+        </>
+      ) : (
+        <>
+          <Row fillWidth gap="2" style={{ height: "6px", borderRadius: "3px", overflow: "hidden" }}>
+            <div
+              style={{
+                width: `${yesPercent}%`,
+                backgroundColor: "var(--success-solid-strong)",
+                transition: "width 0.3s ease",
+              }}
+            />
+            <div
+              style={{
+                width: `${noPercent}%`,
+                backgroundColor: "var(--danger-solid-strong, #ef4444)",
+                transition: "width 0.3s ease",
+              }}
+            />
+          </Row>
+
+          <Row fillWidth vertical="center" style={{ justifyContent: "space-between" }}>
+            <Row gap="xs">
+              <Text
+                variant="body-default-xs"
+                style={{ color: "var(--success-solid-strong)" }}
+              >
+                Yes {yesPercent}c
+              </Text>
+              <Text variant="body-default-xs" onBackground="neutral-weak">
+                /
+              </Text>
+              <Text
+                variant="body-default-xs"
+                style={{ color: "var(--danger-solid-strong, #ef4444)" }}
+              >
+                No {noPercent}c
+              </Text>
+            </Row>
+            <Text variant="body-default-xs" onBackground="neutral-weak">
+              {formatVolume(event.volume)}
+            </Text>
+          </Row>
+        </>
+      )}
     </Column>
   );
 };

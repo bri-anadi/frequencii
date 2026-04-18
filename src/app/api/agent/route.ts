@@ -55,25 +55,27 @@ function buildMessages(
   let fullMessage = userMessage;
 
   if (marketContext) {
-    const market = marketContext.markets?.[0];
+    const marketsInfo = Array.isArray(marketContext.markets)
+      ? marketContext.markets.map((m: any, i: number) => `
+Option ${i + 1}: ${m.title} (ID: ${m.id})
+Outcomes: ${m.outcomes?.join(" / ")}
+Current Odds: ${m.outcomePrices?.map((p: number) => `${(p * 100).toFixed(1)}%`).join(" / ")}
+`).join("\n")
+      : "";
+
     const contextBlock = `
 [MARKET CONTEXT — Jupiter Prediction API]
-Title: ${marketContext.title}
-ID: ${marketContext.id}
+Event Title: ${marketContext.title}
+Event ID: ${marketContext.id}
 Category: ${marketContext.category}
 Description: ${marketContext.description}
 Total Volume: $${(marketContext.volume || 0).toLocaleString()}
 24h Volume: $${(marketContext.volume24hr || 0).toLocaleString()}
 End Date: ${marketContext.endDate || "N/A"}
 Status: ${marketContext.active ? "Active" : "Closed"}
-${
-  market
-    ? `
-Outcomes: ${market.outcomes?.join(" / ")}
-Current Odds: ${market.outcomePrices?.map((p: number) => `${(p * 100).toFixed(1)}%`).join(" / ")}
-`
-    : ""
-}
+
+--- Sub-Markets (Options) ---
+${marketsInfo}
 [END MARKET CONTEXT]
 `;
     fullMessage = contextBlock + "\n\n" + userMessage;
