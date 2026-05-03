@@ -1,101 +1,181 @@
-# Frequencii World
+# Frequencii
 
-### Privacy-First Social Layer on Solana
+### Private AI Prediction Agent on Solana
 
-**Frequencii** is a next-generation on-chain social platform that harmonizes high-frequency real-time interactions with robust user privacy. Built at the intersection of **Zero-Knowledge Proofs (ZKP)** and **Ephemeral Rollups**, Frequencii solves the "Privacy vs. Performance" dilemma in Web3 social apps.
+**Your bets. Your business. Nobody else's.**
+
+Frequencii is a privacy-first prediction market platform on Solana that combines **AI-powered market analysis** with **Zero-Knowledge privacy** — so no one can track your wallet, your positions, or your strategy.
 
 ---
 
-## Vision
+## The Problem
 
-In the current Web3 social landscape, users are forced to choose between:
-1.  **Transparency**: Every like, DM, and tip is permanently visible on-chain.
-2.  **Sluggishness**: On-chain interactions are often slow and costly.
+On platforms like Polymarket, **every bet you make is public**. Your wallet address is permanently linked to every position, every trade, every win, and every loss. This creates real problems:
 
-**Frequencii World** introduces a hybrid architecture where:
-*   **Assets** (Tips/Gifts) are **shielded** — providing financial privacy.
-*   **Interactions** (Chats/Actions) are **ephemeral** — providing speed and temporary privacy before settlement.
+- 🔍 **Wallet Tracking** — Anyone can monitor whale wallets, copy their trades, or front-run their positions.
+- 🎯 **Identity Doxxing** — Chain analysis firms link wallets to real identities. Your political bets, your financial predictions — all exposed.
+- 📊 **Strategy Leaking** — Competitors and adversaries can reverse-engineer your conviction and position sizing in real-time.
+- 💰 **Market Manipulation** — When large positions are visible, markets move against you before you can execute.
+
+**The result?** Smart traders either avoid prediction markets entirely, or fragment their activity across dozens of burner wallets — a painful, manual process that still leaves traces.
+
+---
+
+## The Solution
+
+Frequencii breaks the link between **your identity** and **your predictions** — permanently.
+
+```
+Main Wallet → ZK Shielded Pool → Ephemeral Burner Wallet → Prediction Market
+                  ↑                        ↑
+           Identity broken          Fresh wallet per trade
+           via Light Protocol       No history, no pattern
+```
+
+### How It Works
+
+1. **Deposit** SOL from your main wallet into a ZK-shielded pool (PrivacyCash / Light Protocol)
+2. **Generate** an ephemeral burner wallet with zero on-chain history
+3. **Fund** the burner wallet from the shielded pool — no link to your identity
+4. **Trade** on Jupiter Prediction Markets through the burner
+5. **Withdraw** winnings back through the shielded pool to any wallet
+
+No one — not chain analysts, not other traders, not the platform itself — can connect your bets to your real wallet.
 
 ---
 
 ## Key Features
 
-### 1. Private Gifts (Shielded Transfers)
-Send anonymous, shielded asset transfers to any user without revealing your main wallet address or transaction history.
-*   **Powered by**: PrivacyCash SDK & Light Protocol.
-*   **Mechanism**: Users "deposit" public SOL into a shielded pool, generating a ZK-proof of ownership (UTXO). Sending a gift involves "withdrawing" or transferring this shielded UTXO to the recipient's address, breaking the on-chain link between sender and receiver.
-*   **User Benefit**: Tip your favorite creators or friends without doxxing your net worth or transaction habits.
+### 🤖 AI Prediction Agent
+An LLM-powered market analyst that streams real-time analysis directly to you.
 
-### 2. High-Frequency P2P Chat
-Experience instant, gasless messaging that feels like Web2 but is secured by Solana.
-*   **Powered by**: MagicBlock Ephemeral Rollups.
-*   **Mechanism**: Chat messages are processed on high-speed ephemeral rollups (SVM) and only the final state is settled to Solana Mainnet. This enables thousands of confirmed messages per second at zero cost to the user.
-*   **User Benefit**: No popup signing for every message. No gas fees. Just chat.
+- **Real-time analysis** of prediction market odds, volume shifts, and sentiment
+- **Structured reasoning** — probability assessment, key factors, confidence scoring
+- **Market context awareness** — automatically ingests current market data
+- **SSE streaming** — responses stream in real-time, just like ChatGPT
+- **Powered by**: OpenRouter (Minimax M2.5)
 
-### 3. AI Prediction Agent (Private Trading)
-Analyze prediction markets with AI and place fully private trades through ZK-shielded burner wallets.
-*   **AI Engine**: OpenRouter (Minimax M2.5) provides real-time market analysis, risk assessment, and trading recommendations.
-*   **Market Data**: Jupiter Prediction API supplies live odds, volume, liquidity, and event metadata.
-*   **Trade Execution**: Jupiter Prediction API enables native Solana prediction market trading without cross-chain bridging.
-*   **Privacy Architecture**: All prediction trades route through an ephemeral burner wallet funded via PrivacyCash (Main Wallet → ZK Shielded Pool → Burner Wallet), breaking the on-chain link between user identity and prediction positions.
-*   **User Benefit**: Get AI-powered market insights and trade predictions with complete anonymity — no one can link your bets to your main wallet.
+### 🔒 ZK-Shielded Trading
+Trade predictions without exposing your wallet or strategy.
+
+- **Zero-Knowledge proofs** break the on-chain link between sender and receiver
+- **Ephemeral burner wallets** — fresh address per trade session
+- **UTXO model** — transaction unlinkability prevents chain analysis
+- **Powered by**: PrivacyCash SDK & Light Protocol
+
+### ⚡ High-Frequency P2P Chat
+Instant, gasless messaging secured by Solana.
+
+- **MagicBlock Ephemeral Rollups** — 1000+ messages/sec, zero gas
+- **Delegated PDAs** — no popup signing for every message
+- **On-chain settlement** — final state settles to Solana L1
+- **Private gifting** — send anonymous shielded SOL tips in chat
+
+### 📱 Mobile API (v1)
+Full REST API for Flutter mobile client and third-party integrations.
+
+- **JWT authentication** via Solana wallet signatures
+- **17 endpoints** — markets, trading, positions, agent, profile, watchlist
+- **SSE streaming** for real-time AI agent on mobile
+- **Interactive docs** at [`/api/v1/docs`](http://localhost:3000/api/v1/docs) (Scalar)
 
 ---
 
-## Technology Stack & Architecture
+## Technology Stack
 
-We leverage a composable stack of cutting-edge Solana technologies:
-
-| Component | Technology | Role |
+| Layer | Technology | Purpose |
 | :--- | :--- | :--- |
-| **Privacy Layer** | **PrivacyCash / Light Protocol** | Handles ZK-compression, UTXO state management, and shielded transactions. |
-| **Scaling Layer** | **MagicBlock (Ephemeral Rollups)** | Usage of "Delegated PDAs" to enable gasless, signature-free session keys for chat. |
-| **AI Layer** | **OpenRouter (Minimax M2.5)** | LLM-powered market analysis and prediction recommendations. |
-| **Market Data** | **Jupiter Prediction API** | Live prediction market odds, volume, and event data. |
-| **Prediction Trading** | **Jupiter Prediction API** | Native Solana prediction market order execution. |
-| **Auth** | **JWT + Solana Wallet Signatures** | Stateless authentication via wallet-signed messages and JSON Web Tokens. |
-| **Persistence** | **SQLite (better-sqlite3)** | Lightweight local storage for user profiles, watchlists, and push tokens. |
-| **Infrastructure** | **Helius** | High-performance RPCs ensuring 99.9% uptime for transaction delivery. |
-| **Frontend** | **Next.js + Once UI** | A responsive, modern interface designed for mass adoption. |
-| **API Docs** | **OpenAPI 3.1 + Scalar** | Interactive API reference for mobile and third-party integrations. |
+| **Privacy** | PrivacyCash / Light Protocol | ZK-compressed shielded transactions, UTXO state |
+| **Scaling** | MagicBlock Ephemeral Rollups | Gasless chat via delegated PDAs on SVM L2 |
+| **AI** | OpenRouter (Minimax M2.5) | LLM-powered prediction market analysis |
+| **Markets** | Jupiter Prediction API | Live odds, volume, trading execution on Solana |
+| **Auth** | JWT + Solana Wallet Signatures | Stateless mobile authentication (ed25519) |
+| **Persistence** | SQLite (better-sqlite3) | User profiles, watchlists, push tokens |
+| **RPC** | Helius | High-performance Solana RPC (99.9% uptime) |
+| **Frontend** | Next.js + Once UI | Responsive web interface |
+| **API Docs** | OpenAPI 3.1 + Scalar | Interactive API reference |
+
+---
+
+## Privacy Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    YOUR MAIN WALLET                      │
+│                  (publicly known)                        │
+└────────────────────────┬────────────────────────────────┘
+                         │ Deposit
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│              ZK SHIELDED POOL (Light Protocol)           │
+│                                                          │
+│  • UTXO-based state                                      │
+│  • Zero-knowledge proofs verify ownership                │
+│  • No public link between deposit and withdrawal         │
+│  • Relayer submits transactions (sender hidden)          │
+└────────────────────────┬────────────────────────────────┘
+                         │ Withdraw to burner
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│              EPHEMERAL BURNER WALLET                      │
+│                                                          │
+│  • Fresh address with zero history                       │
+│  • Funded exclusively from shielded pool                 │
+│  • Used for a single trading session                     │
+│  • Discarded after use                                   │
+└────────────────────────┬────────────────────────────────┘
+                         │ Trade
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│           JUPITER PREDICTION MARKETS                     │
+│                                                          │
+│  • Positions held by burner wallet                       │
+│  • No connection to your real identity                   │
+│  • Winnings route back through shielded pool             │
+└─────────────────────────────────────────────────────────┘
+```
+
+### What's Hidden
+
+| Data Point | On Polymarket | On Frequencii |
+| :--- | :--- | :--- |
+| Your wallet address | 🔴 Public | 🟢 Hidden behind burner |
+| Position sizes | 🔴 Public | 🟢 Only burner wallet visible |
+| Trade history | 🔴 Permanently on-chain | 🟢 Burner is ephemeral |
+| Funding source | 🔴 Traceable | 🟢 ZK-shielded |
+| Win/loss record | 🔴 Anyone can calculate | 🟢 Cannot link to you |
+| Trading patterns | 🔴 Analyzable | 🟢 Each session is a new wallet |
 
 ---
 
 ## REST API (v1)
 
-Frequencii exposes a full RESTful API at `/api/v1` for mobile client consumption (Flutter) and third-party integrations. All endpoints (except auth) require a JWT token obtained via Solana wallet signature.
-
-**📖 Interactive Docs**: [`/api/v1/docs`](http://localhost:3000/api/v1/docs) — Scalar UI with the deep space theme.  
+**📖 Interactive Docs**: [`/api/v1/docs`](http://localhost:3000/api/v1/docs)  
 **📄 OpenAPI Spec**: [`/api/v1/openapi.json`](http://localhost:3000/api/v1/openapi.json)
-
-### Endpoints
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `POST` | `/api/v1/auth/login` | Authenticate with Solana wallet signature → JWT |
-| `POST` | `/api/v1/auth/refresh` | Refresh an existing JWT token |
-| `GET` | `/api/v1/markets` | List prediction markets (filter by category, search) |
-| `GET` | `/api/v1/markets/:id` | Get single market detail |
-| `POST` | `/api/v1/trade` | Build a trade transaction (client signs & submits) |
-| `GET` | `/api/v1/positions` | List user's open/resolved positions |
-| `POST` | `/api/v1/positions/:id/claim` | Build a claim payout transaction |
+| `POST` | `/api/v1/auth/refresh` | Refresh JWT token |
+| `GET` | `/api/v1/markets` | List prediction markets (filter, search, paginate) |
+| `GET` | `/api/v1/markets/:id` | Get market detail |
+| `POST` | `/api/v1/trade` | Build trade transaction |
+| `GET` | `/api/v1/positions` | List open/resolved positions |
+| `POST` | `/api/v1/positions/:id/claim` | Claim payout |
 | `POST` | `/api/v1/agent/chat` | AI agent analysis (SSE streaming) |
-| `GET` | `/api/v1/user/profile` | Get user profile |
-| `PUT` | `/api/v1/user/profile` | Update display name / avatar |
-| `POST` | `/api/v1/user/push-token` | Register FCM push token |
-| `DELETE` | `/api/v1/user/push-token` | Unregister push token |
-| `GET` | `/api/v1/watchlist` | List watchlisted markets |
-| `POST` | `/api/v1/watchlist/:eventId` | Add market to watchlist |
-| `DELETE` | `/api/v1/watchlist/:eventId` | Remove from watchlist |
+| `GET/PUT` | `/api/v1/user/profile` | Manage user profile |
+| `POST/DEL` | `/api/v1/user/push-token` | Manage FCM push tokens |
+| `GET` | `/api/v1/watchlist` | List watchlist |
+| `POST/DEL` | `/api/v1/watchlist/:eventId` | Add/remove from watchlist |
 
-### Authentication Flow
+### Auth Flow
 
 ```
-1. Client signs message: "Frequencii Auth: {timestamp}"
+1. Client signs: "Frequencii Auth: {timestamp}"
 2. POST /api/v1/auth/login { pubkey, signature, message }
-3. Server verifies signature via tweetnacl (ed25519)
-4. Returns JWT token (valid 7 days)
-5. Client includes: Authorization: Bearer <token>
+3. Server verifies ed25519 signature (tweetnacl)
+4. Returns JWT (valid 7 days)
+5. All subsequent requests: Authorization: Bearer <token>
 ```
 
 ---
@@ -104,47 +184,36 @@ Frequencii exposes a full RESTful API at `/api/v1` for mobile client consumption
 
 ```
 frequencii/
-├── contracts/                    # Solana programs (Anchor)
-│   └── frequencii_chat/          # On-chain chat program
+├── contracts/frequencii_chat/     # Anchor smart contract (P2P chat)
 ├── src/
 │   ├── app/
-│   │   ├── (main)/
-│   │   │   ├── components/       # UI components
-│   │   │   │   ├── AgentChat     # AI prediction agent
-│   │   │   │   ├── MarketBrowser # Market discovery
-│   │   │   │   ├── MarketDetail  # Market analysis view
-│   │   │   │   ├── TradePanel    # Trade execution
-│   │   │   │   ├── PortfolioView # Position tracking
-│   │   │   │   ├── GiftModal     # Shielded transfers
-│   │   │   │   ├── UnifiedChat   # P2P messaging
-│   │   │   │   └── UnifiedSidebar
-│   │   │   └── layout.tsx
+│   │   ├── (main)/components/     # UI components
+│   │   │   ├── AgentChat          # AI prediction agent
+│   │   │   ├── MarketBrowser      # Market discovery
+│   │   │   ├── MarketDetail       # Market analysis
+│   │   │   ├── TradePanel         # Trade execution
+│   │   │   ├── PortfolioView      # Position tracking
+│   │   │   ├── GiftModal          # Shielded transfers
+│   │   │   └── UnifiedChat        # P2P messaging
 │   │   └── api/
-│   │       ├── agent/            # Web AI agent (SSE)
-│   │       ├── jupiter/          # Web Jupiter proxy
-│   │       ├── og/               # OG image proxy
-│   │       └── v1/               # REST API for mobile
-│   │           ├── auth/         # login, refresh
-│   │           ├── markets/      # list, detail
-│   │           ├── trade/        # build transaction
-│   │           ├── positions/    # list, claim
-│   │           ├── agent/chat/   # AI streaming
-│   │           ├── user/         # profile, push-token
-│   │           ├── watchlist/    # manage watchlist
-│   │           ├── docs/         # Scalar API docs
-│   │           └── openapi.json/ # OpenAPI spec
-│   ├── lib/
-│   │   ├── api/                  # Shared API modules
-│   │   │   ├── auth.ts           # JWT + wallet signature
-│   │   │   ├── cors.ts           # CORS headers
-│   │   │   ├── db.ts             # SQLite persistence
-│   │   │   ├── jupiter.ts        # Jupiter API client
-│   │   │   └── openapi.ts        # OpenAPI 3.1 spec
-│   │   ├── types.ts              # Shared TypeScript types
-│   │   └── data.ts               # Constants & config
-│   └── components/               # Shared UI components
-├── .env.example
-├── next.config.mjs
+│   │       ├── v1/                # REST API for mobile
+│   │       │   ├── auth/          #   JWT login & refresh
+│   │       │   ├── markets/       #   List & detail
+│   │       │   ├── trade/         #   Build transactions
+│   │       │   ├── positions/     #   Positions & claims
+│   │       │   ├── agent/chat/    #   AI streaming
+│   │       │   ├── user/          #   Profile & push tokens
+│   │       │   ├── watchlist/     #   Market watchlist
+│   │       │   └── docs/          #   Scalar API docs
+│   │       ├── agent/             # Web AI agent
+│   │       └── jupiter/           # Web Jupiter proxy
+│   └── lib/
+│       └── api/                   # Shared modules
+│           ├── auth.ts            #   JWT + wallet verification
+│           ├── db.ts              #   SQLite persistence
+│           ├── cors.ts            #   CORS headers
+│           ├── jupiter.ts         #   Jupiter API client
+│           └── openapi.ts         #   OpenAPI spec
 └── package.json
 ```
 
@@ -154,82 +223,57 @@ frequencii/
 
 ### Prerequisites
 
-- **Node.js** ≥ 18
-- **pnpm** (recommended) or npm
-- **Solana CLI** (for contract deployment)
-- **Anchor** ≥ 0.32 (for contract development)
+- Node.js ≥ 18
+- pnpm
+- Solana CLI (for contract deployment)
 
-### Installation
+### Setup
 
 ```bash
-# Clone the repository
 git clone https://github.com/bri-anadi/frequencii.git
 cd frequencii
-
-# Install dependencies
 pnpm install
-
-# Configure environment
 cp .env.example .env
 # Edit .env with your API keys
+pnpm dev
 ```
 
 ### Environment Variables
 
-| Variable | Required | Description |
-| :--- | :---: | :--- |
-| `NEXT_PUBLIC_HELIUS_RPC_URL` | ✅ | Helius RPC API key for Solana |
-| `NEXT_PUBLIC_REOWN_PROJECT_ID` | ✅ | Reown (WalletConnect) project ID |
-| `OPENROUTER_API_KEY` | ✅ | OpenRouter API key for AI agent |
-| `JUPITER_API_KEY` | ✅ | Jupiter Prediction API key |
-| `JWT_SECRET` | ✅ | Secret key for signing JWT tokens |
-
-### Development
-
-```bash
-# Start dev server
-pnpm dev
-
-# Build for production
-pnpm build
-
-# Start production server
-pnpm start
-```
-
-### API Documentation
-
-Once the dev server is running, visit:
-- **Interactive docs**: [http://localhost:3000/api/v1/docs](http://localhost:3000/api/v1/docs)
-- **OpenAPI spec**: [http://localhost:3000/api/v1/openapi.json](http://localhost:3000/api/v1/openapi.json)
+| Variable | Description |
+| :--- | :--- |
+| `NEXT_PUBLIC_HELIUS_RPC_URL` | Helius RPC API key |
+| `NEXT_PUBLIC_REOWN_PROJECT_ID` | Reown (WalletConnect) project ID |
+| `OPENROUTER_API_KEY` | OpenRouter API key for AI agent |
+| `JUPITER_API_KEY` | Jupiter Prediction API key |
+| `JWT_SECRET` | Secret for signing JWT tokens |
 
 ---
 
 ## Roadmap
 
-We are building towards a comprehensive privacy-centric social ecosystem.
+### Phase 1: Core Platform ✅
+- [x] AI prediction agent with SSE streaming
+- [x] Jupiter Prediction Market integration
+- [x] ZK-shielded transfers (PrivacyCash)
+- [x] P2P chat via MagicBlock Ephemeral Rollups
+- [x] REST API v1 with JWT auth & OpenAPI docs
 
-### Phase 1: Foundations ✅
-*   [x] **P2P Chat**: Fundamental implementation using MagicBlock.
-*   [x] **Private Gift**: Integration of PrivacyCash for anonymous SOL tipping.
-*   [x] **AI Prediction Agent**: Market analysis with SSE streaming.
-*   [x] **Market Trading**: Jupiter Prediction API integration.
-*   [x] **REST API v1**: Full mobile API with JWT auth, OpenAPI docs.
+### Phase 2: Mobile & Privacy Expansion (Q2 2026)
+- [ ] Flutter mobile app (iOS/Android)
+- [ ] Push notifications for market alerts
+- [ ] Automated burner wallet rotation
+- [ ] Multi-market portfolio privacy
 
-### Phase 2: Mobile & Expanded Privacy (Q2 2026)
-*   [ ] **Flutter Mobile App**: Native iOS/Android client consuming API v1.
-*   [ ] **Push Notifications**: FCM integration for market alerts.
-*   [ ] **Global / Public Chat**: Public spaces with ZK-verified pseudonyms.
-*   [ ] **Secret Addresses**: Receiving funds into shielded accounts.
+### Phase 3: Advanced Intelligence (Q3 2026)
+- [ ] Multi-model AI consensus analysis
+- [ ] Historical accuracy tracking
+- [ ] Community sentiment aggregation
+- [ ] Privacy-preserving reputation scores
 
-### Phase 3: Community Tools (Q3 2026)
-*   [ ] **Chat Grouping**: Encrypted private groups and token-gated channels.
-*   [ ] **Reputation System**: Privacy-preserving reputation scores.
-*   [ ] **Market Watchlist Alerts**: Real-time notifications on watched markets.
-
-### Phase 4: Ecosystem Growth
-*   [ ] **Developer SDK**: Allow other apps to plug into Frequencii's privacy layer.
-*   [ ] **Advanced AI**: Multi-model consensus for prediction analysis.
+### Phase 4: Ecosystem
+- [ ] Developer SDK for privacy layer
+- [ ] Cross-platform agent API
 
 ---
 
@@ -239,4 +283,4 @@ MIT
 
 ---
 
-Frequencii demonstrates that **privacy is not a feature, but a layer**. By seamlessly integrating PrivacyCash for financial privacy and MagicBlock for interaction scalability, we provide a blueprint for the future of SocialFi — where being social doesn't mean being exposed.
+**Frequencii** — because in prediction markets, **the smartest trade is the one nobody sees.**
