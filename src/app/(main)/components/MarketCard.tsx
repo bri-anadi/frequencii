@@ -22,7 +22,8 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const market = sortedMarkets[0];
   const yesPrice = market?.outcomePrices?.[0] ?? 0.5;
   const noPrice = market?.outcomePrices?.[1] ?? 0.5;
-  const yesPercent = (yesPrice * 100).toFixed(1);
+  const yesPercent = yesPrice * 100;
+  const yesPercentStr = yesPercent.toFixed(1);
   const noPercent = (noPrice * 100).toFixed(1);
 
   const formatVolume = (vol: number) => {
@@ -160,7 +161,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                 }}
                 title={market?.question}
               >
-               Top {yesPercent}c: {market?.question || 'Option'}
+               Top {yesPercentStr}c: {market?.question || 'Option'}
               </Text>
             </Row>
             <Text variant="body-default-xs" onBackground="neutral-weak" style={{ flexShrink: 0 }}>
@@ -193,7 +194,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
                 variant="body-default-xs"
                 style={{ color: "var(--success-solid-strong)" }}
               >
-                Yes {yesPercent}c
+                Yes {yesPercentStr}c
               </Text>
               <Text variant="body-default-xs" onBackground="neutral-weak">
                 /

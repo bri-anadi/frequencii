@@ -3,6 +3,7 @@ onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@reown/appkit'
   - '@stellar/stellar-sdk'
+  - better-sqlite3
   - bigint-buffer
   - blake-hash
   - bufferutil

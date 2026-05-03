@@ -139,7 +139,7 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({
                 }}
               >
                 {/* Row 1: Name and Chance */}
-                <Row fillWidth vertical="center" justify="space-between">
+                <Row fillWidth vertical="center" style={{ justifyContent: "space-between" }}>
                   <Column flex={1} gap="2" style={{ paddingRight: "16px" }}>
                     <Text variant="body-strong-s" style={{ whiteSpace: "normal" }}>
                       {market.question || event.title}
@@ -149,7 +149,7 @@ export const MarketDetail: React.FC<MarketDetailProps> = ({
                     </Text>
                   </Column>
 
-                  <Column align="end" justify="center">
+                  <Column align="end" style={{ justifyContent: "center" }}>
                     <Text variant="heading-strong-m">
                       {yesChance}%
                     </Text>

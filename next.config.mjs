@@ -3,6 +3,7 @@ const nextConfig = {
   sassOptions: {
     silenceDeprecations: ["legacy-js-api"],
   },
+  serverExternalPackages: ["better-sqlite3"],
   webpack: (config, { isServer, webpack }) => {
     if (!isServer) {
       config.resolve.alias = {
