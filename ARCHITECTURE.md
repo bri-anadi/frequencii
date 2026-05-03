@@ -1,10 +1,10 @@
-# Frequencii — Architecture
+# Frequencii -- Architecture
 
 ## Overview
 
 Frequencii is a **privacy-first AI prediction market agent** on Solana. The core architectural challenge it solves: **how do you trade prediction markets without anyone knowing it's you?**
 
-On platforms like Polymarket, every position is permanently linked to your wallet. Chain analysts, competitors, and adversaries can track your bets, reverse-engineer your strategy, and front-run your positions. Frequencii eliminates this by routing all prediction trades through ZK-shielded ephemeral wallets — making your identity, positions, and strategy invisible.
+On platforms like Polymarket, every position is permanently linked to your wallet. Chain analysts, competitors, and adversaries can track your bets, reverse-engineer your strategy, and front-run your positions. Frequencii eliminates this by routing all prediction trades through ZK-shielded ephemeral wallets -- making your identity, positions, and strategy invisible.
 
 ---
 
@@ -33,7 +33,7 @@ flowchart TB
 
     subgraph Markets["Market Layer"]
         Jupiter["Jupiter Prediction API"]
-        MarketData["Market Data & Odds"]
+        MarketData["Market Data and Odds"]
         Trading["Trade Execution"]
     end
 
@@ -90,17 +90,17 @@ flowchart TB
 
 ---
 
-## Privacy Architecture — The Core
+## Privacy Architecture -- The Core
 
 ### The Polymarket Problem
 
 ```mermaid
 flowchart LR
     subgraph Polymarket["Polymarket (Public)"]
-        PW["Your Wallet\n0x7a3b..."]
-        PP["Your Positions\n$50k YES on X"]
-        PT["Your Trade History\n47 trades visible"]
-        PI["Your Identity\nLinked by chain analysis"]
+        PW["Your Wallet 0x7a3b..."]
+        PP["Your Positions $50k YES on X"]
+        PT["Your Trade History 47 trades visible"]
+        PI["Your Identity Linked by chain analysis"]
     end
 
     PW --> PP
@@ -117,19 +117,19 @@ flowchart LR
 ```mermaid
 flowchart TB
     subgraph Identity["Your Identity"]
-        MainWallet["Main Wallet\n(publicly known)"]
+        MainWallet["Main Wallet (publicly known)"]
     end
 
     subgraph Shielding["ZK Shielding Layer"]
         Deposit["Deposit SOL"]
         ZKProof1["Generate ZK Proof"]
-        Pool["Shielded Pool\n(UTXO State)"]
+        Pool["Shielded Pool (UTXO State)"]
         ZKProof2["Generate Transfer Proof"]
         Withdraw["Withdraw to Burner"]
     end
 
     subgraph Ephemeral["Ephemeral Layer"]
-        Burner["Burner Wallet\n(zero history)"]
+        Burner["Burner Wallet (zero history)"]
         Trade["Execute Trade"]
         Discard["Discard Wallet"]
     end
@@ -151,7 +151,7 @@ flowchart TB
     Payout -->|"back through pool"| Pool
     Burner -->|"Step 5"| Discard
 
-    Analyst["Chain Analyst"] -.->|"❌ cannot trace"| Pool
+    Analyst["Chain Analyst"] -.->|"cannot trace"| Pool
 ```
 
 ### Privacy Guarantee Matrix
@@ -159,11 +159,11 @@ flowchart TB
 | Attack Vector | How Polymarket Fails | How Frequencii Protects |
 | :--- | :--- | :--- |
 | **Wallet tracking** | All positions linked to one address | Each trade uses fresh burner wallet |
-| **Chain analysis** | Deposit → trade → withdrawal is traceable | ZK proofs break the deposit-withdrawal link |
+| **Chain analysis** | Deposit, trade, withdrawal is traceable | ZK proofs break the deposit-withdrawal link |
 | **Position surveillance** | Anyone can see your open bets | Burner wallet has no association with you |
 | **Pattern analysis** | Trading frequency, sizes, timing reveal identity | Burner wallets are single-use, no pattern |
 | **Front-running** | Large visible positions attract MEV | Position holder (burner) is anonymous |
-| **Social engineering** | Known positions → targeted manipulation | No one knows what you're betting on |
+| **Social engineering** | Known positions enable targeted manipulation | No one knows what you are betting on |
 
 ### ZK Shielded Transfer Sequence
 
@@ -177,21 +177,21 @@ sequenceDiagram
     participant Burner as Burner Wallet
     participant Jupiter as Jupiter Markets
 
-    Note over User,Jupiter: Phase 1 — Shield Identity
+    Note over User,Jupiter: Phase 1 -- Shield Identity
     User->>App: Initiate private trade
     App->>Privacy: signIn()
     Privacy->>User: Request signature
     User-->>Privacy: Sign message
     Privacy->>Privacy: Derive encryption keys
 
-    Note over User,Jupiter: Phase 2 — Fund Shielded Pool
+    Note over User,Jupiter: Phase 2 -- Fund Shielded Pool
     App->>Privacy: deposit(amount)
     Privacy->>Light: Create deposit proof
-    Light->>Solana: Compress state → UTXO
+    Light->>Solana: Compress state to UTXO
     Solana-->>Privacy: UTXO created
     Note over Light: Identity link broken here
 
-    Note over User,Jupiter: Phase 3 — Fund Burner
+    Note over User,Jupiter: Phase 3 -- Fund Burner
     App->>App: Generate ephemeral keypair
     App->>Privacy: withdraw(amount, burner_address)
     Privacy->>Light: Create transfer proof
@@ -199,12 +199,12 @@ sequenceDiagram
     Note over Solana: Sender identity hidden
     Solana-->>Burner: SOL received (no history)
 
-    Note over User,Jupiter: Phase 4 — Trade Anonymously
+    Note over User,Jupiter: Phase 4 -- Trade Anonymously
     App->>Jupiter: Build trade (burner signs)
     Jupiter-->>Burner: Position opened
     Note over Jupiter: Position held by anonymous wallet
 
-    Note over User,Jupiter: Phase 5 — Collect & Discard
+    Note over User,Jupiter: Phase 5 -- Collect and Discard
     Jupiter->>Burner: Payout (if won)
     App->>Privacy: deposit(payout) from burner
     Privacy->>Light: Re-shield funds
@@ -226,9 +226,9 @@ flowchart LR
     end
 
     subgraph Processing["Agent Processing"]
-        SystemPrompt["System Prompt\n(Prediction Analyst)"]
-        ContextBuilder["Context Builder\n(Market Data Injection)"]
-        MessageBuilder["Message Builder\n(Last 10 messages)"]
+        SystemPrompt["System Prompt (Prediction Analyst)"]
+        ContextBuilder["Context Builder (Market Data Injection)"]
+        MessageBuilder["Message Builder (Last 10 messages)"]
     end
 
     subgraph LLM["LLM Layer"]
@@ -240,7 +240,7 @@ flowchart LR
     subgraph Output["Output"]
         SSE["SSE Stream"]
         Analysis["Market Analysis"]
-        MarketTags["Market Card Tags\n||MARKETS:id1,id2||"]
+        MarketTags["Market Card Tags"]
     end
 
     Message --> ContextBuilder
@@ -265,19 +265,19 @@ flowchart LR
 | **Sentiment Reading** | Volume shifts, odds movement interpretation |
 | **Factor Identification** | Key events that could shift outcomes |
 | **Context Awareness** | Ingests current market or trending markets data |
-| **Interactive Cards** | References markets via `\|\|MARKETS:id\|\|` tags for UI rendering |
+| **Interactive Cards** | References markets via tag syntax for UI rendering |
 
 ### SSE Streaming Protocol
 
 ```
-Client → POST /api/v1/agent/chat
-         { message, marketContext?, trendingMarkets?, history? }
+Client -> POST /api/v1/agent/chat
+          { message, marketContext?, trendingMarkets?, history? }
 
-Server → text/event-stream
-         data: {"content": "Based on...", "done": false}
-         data: {"content": " current odds...", "done": false}
-         ...
-         data: {"done": true}
+Server -> text/event-stream
+          data: {"content": "Based on...", "done": false}
+          data: {"content": " current odds...", "done": false}
+          ...
+          data: {"done": true}
 ```
 
 ---
@@ -293,11 +293,11 @@ sequenceDiagram
     participant Auth as Auth Module
     participant DB as SQLite
 
-    Client->>Client: Sign "Frequencii Auth: {timestamp}"
+    Client->>Client: Sign message with wallet
     Client->>API: POST /auth/login {pubkey, signature, message}
     API->>Auth: verifyWalletSignature(pubkey, sig, msg)
     Auth->>Auth: Verify ed25519 (tweetnacl)
-    Auth->>Auth: Check timestamp (< 5 min)
+    Auth->>Auth: Check timestamp (less than 5 min)
     Auth-->>API: Valid
     API->>DB: upsertUser(pubkey)
     API->>Auth: signJwt(pubkey)
@@ -305,7 +305,7 @@ sequenceDiagram
     API-->>Client: {token, expiresAt, user}
 
     Note over Client,DB: Subsequent Requests
-    Client->>API: GET /markets (Authorization: Bearer <token>)
+    Client->>API: GET /markets (Authorization: Bearer token)
     API->>Auth: verifyJwt(token)
     Auth-->>API: {pubkey}
     API-->>Client: Market data
@@ -383,6 +383,40 @@ erDiagram
 
 ---
 
+## Burner Wallet Lifecycle
+
+The burner wallet is the critical piece that breaks the on-chain link between user identity and prediction positions. The implementation lives in `useBurnerWallet.ts` and follows a strict lifecycle:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle: App loaded
+    Idle --> SigningIn: User initiates private trade
+    SigningIn --> KeysDerived: PrivacyCash signIn()
+    KeysDerived --> GeneratingKeypair: Generate ephemeral keypair
+    GeneratingKeypair --> FundingPool: Deposit SOL to shielded pool
+    FundingPool --> WithdrawingToBurner: Withdraw to burner address
+    WithdrawingToBurner --> Ready: Burner funded
+    Ready --> Trading: Execute prediction trade
+    Trading --> Ready: Trade complete
+    Ready --> Discarding: Session ends
+    Discarding --> [*]: Keypair destroyed
+```
+
+### Setup Steps (from source code)
+
+| Step | Internal Key | Description |
+| :--- | :--- | :--- |
+| 1 | `signing_in` | User signs PrivacyCash authentication message |
+| 2 | `deriving_keys` | Derive encryption keys from signature |
+| 3 | `checking_balance` | Check existing shielded balance |
+| 4 | `generating_keypair` | Generate fresh ephemeral keypair |
+| 5 | `depositing` | Deposit SOL to ZK shielded pool |
+| 6 | `withdrawing` | Withdraw from pool to burner address |
+| 7 | `confirming` | Confirm burner is funded on-chain |
+| 8 | `complete` | Burner wallet ready for trading |
+
+---
+
 ## P2P Chat Architecture
 
 ### Message Flow
@@ -424,7 +458,7 @@ sequenceDiagram
     end
 
     ChatRoom-->>Frontend: Message Stored
-    Frontend-->>User: Sent ✓
+    Frontend-->>User: Sent
 ```
 
 ### Smart Contract
@@ -485,7 +519,7 @@ sequenceDiagram
     Note over Light: ZK Proof Generation
     Light->>Solana: Submit via Relayer
     Note over Solana: Sender Identity Hidden
-    Solana-->>App: Gift Sent ✓
+    Solana-->>App: Gift Sent
 ```
 
 ---
@@ -543,4 +577,4 @@ flowchart TB
 
 ---
 
-*Built on Solana — where privacy meets prediction.*
+*Built on Solana -- where privacy meets prediction.*
