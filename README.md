@@ -260,6 +260,84 @@ pnpm dev
 
 ---
 
+## Business Model
+
+Frequencii monetizes at the intersection of privacy infrastructure and AI intelligence -- two things traders will pay for because the alternative is getting tracked, copied, or front-run.
+
+### Revenue Streams
+
+| Stream | Mechanism | Target |
+| :--- | :--- | :--- |
+| **Privacy Fee** | Small fee (0.3-0.5%) on each ZK shield/unshield operation | Every private trade |
+| **AI Agent Premium** | Subscription tier for advanced analysis: multi-model consensus, historical accuracy tracking, custom alerts | Power traders |
+| **API Access** | Tiered API pricing for third-party apps consuming `/api/v1` endpoints | Developers, trading bots |
+| **Priority Execution** | Paid priority queue for time-sensitive prediction trades through the shielding pipeline | High-frequency traders |
+
+### Why Traders Pay
+
+The core value proposition is not convenience -- it is **protection**.
+
+On Polymarket, a whale placing a $500k position on a political outcome is immediately visible. Within minutes, chain analysts publish the wallet address, copytraders replicate the position (diluting the odds), and adversaries take the opposite side with leverage. The whale's edge is destroyed before the event even resolves.
+
+On Frequencii, that same $500k routes through a ZK-shielded burner. No one sees it. No one copies it. No one front-runs it. The trader keeps their edge -- and that edge is worth far more than a 0.3% fee.
+
+### Unit Economics
+
+```
+Per private trade:
+  Trade size:         $1,000 (average)
+  Privacy fee:        $3-5 (0.3-0.5%)
+  AI subscription:    $29/month (premium tier)
+  Gross margin:       ~95% (infrastructure cost is minimal)
+```
+
+### Competitive Positioning
+
+| | Polymarket | Frequencii |
+| :--- | :--- | :--- |
+| **Privacy** | None -- all positions public | ZK-shielded burner wallets |
+| **AI Analysis** | None built-in | Native AI agent with SSE streaming |
+| **Chain** | Polygon (EVM) | Solana (native, no bridging) |
+| **Mobile** | Web only | REST API + Flutter client |
+| **Fees** | Trading fees | Privacy fees (aligned incentive) |
+
+---
+
+## Traction
+
+### Current Build State
+
+The platform is fully functional with the following components deployed:
+
+| Component | Status | Detail |
+| :--- | :--- | :--- |
+| AI Prediction Agent | Live | SSE streaming, OpenRouter/Minimax M2.5 |
+| Jupiter Market Integration | Live | Market browsing, trade execution, position tracking |
+| ZK Shielded Transfers | Live | PrivacyCash + Light Protocol integration |
+| Burner Wallet Infrastructure | Live | Full lifecycle: generate, fund, trade, discard |
+| P2P Chat (MagicBlock) | Live | Delegated PDAs, gasless messaging |
+| REST API v1 | Live | 15 endpoints, JWT auth, OpenAPI + Scalar docs |
+| Mobile API Layer | Live | Ready for Flutter client consumption |
+
+### Technical Milestones
+
+- **Smart contract deployed** on Solana (Anchor-based chat program with PDA delegation)
+- **15 REST endpoints** with full OpenAPI 3.1 specification and interactive Scalar documentation
+- **SSE streaming** implemented for both web and mobile AI agent interfaces
+- **SQLite persistence layer** for user profiles, watchlists, and push notification tokens
+- **Production build passing** with zero TypeScript errors across the entire codebase
+
+### Market Context
+
+The prediction market space is experiencing significant growth:
+
+- Polymarket processed over **$3B in cumulative volume** through 2024-2025, proving demand exists
+- The primary user complaint on Polymarket forums and crypto Twitter remains **wallet tracking and position doxxing**
+- No existing prediction market platform offers native ZK-shielded trading -- Frequencii is the first to combine AI analysis with trade privacy on Solana
+- Jupiter Prediction Markets on Solana provide the underlying liquidity without requiring cross-chain bridging (unlike Polymarket on Polygon)
+
+---
+
 ## Roadmap
 
 ### Phase 1: Core Platform (Completed)
