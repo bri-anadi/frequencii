@@ -259,12 +259,15 @@ export async function buildTrade(
 ): Promise<any> {
   const headers = buildHeaders();
 
+  // Jupiter API expects isBuy: true for YES, false for NO
+  const isBuy = outcome.toUpperCase() === "YES";
+
   const res = await fetch(`${JUPITER_API_BASE}/orders`, {
     method: "POST",
     headers,
     body: JSON.stringify({
       marketId,
-      outcome,
+      isBuy,
       amount,
       userPubkey: walletPubkey,
     }),

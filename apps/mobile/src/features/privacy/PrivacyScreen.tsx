@@ -1,7 +1,6 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,8 +8,10 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
+import { Buffer } from "buffer";
 import { useBurnerWallet } from "./useBurnerWallet";
-import { ChatScreen } from "../chat/ChatScreen";
+import { useFrequenciiWallet } from "../../solana/useFrequenciiWallet";
 import type { BurnerSetupStep } from "./useBurnerWallet";
 
 const SETUP_STEPS: { key: BurnerSetupStep; label: string }[] = [
@@ -20,25 +21,13 @@ const SETUP_STEPS: { key: BurnerSetupStep; label: string }[] = [
   { key: "stored", label: "Stored" },
 ];
 
-export function PrivacyScreen({ walletAddress }: { walletAddress: string }) {
+export function PrivacyScreen({ walletAddress, token }: { walletAddress: string; token: string }) {
   const burner = useBurnerWallet();
-  const [showChat, setShowChat] = useState(false);
 
   const shortWallet = useMemo(
     () => `${walletAddress.slice(0, 6)}...${walletAddress.slice(-6)}`,
     [walletAddress],
   );
-
-  if (showChat) {
-    return (
-      <View style={styles.screen}>
-        <Pressable onPress={() => setShowChat(false)} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Back to Privacy</Text>
-        </Pressable>
-        <ChatScreen walletAddress={walletAddress} />
-      </View>
-    );
-  }
 
   return (
     <ScrollView contentContainerStyle={styles.content} style={styles.screen}>
@@ -110,260 +99,243 @@ export function PrivacyScreen({ walletAddress }: { walletAddress: string }) {
 
         {burner.state === "unlocked" && (
           <>
-            <View style={styles.walletInfo}>
-              <View style={styles.activeIndicator}>
-                <View style={styles.activeDot} />
-                <Text style={styles.activeText}>Private Wallet Active</Text>
+            <View style={styles.walletHeader}>
+              <View>
+                <Text style={styles.sectionTitle}>Private Wallet</Text>
+                <Text style={styles.walletAddress}>{burner.shortPublicKey}</Text>
               </View>
-              <Text style={styles.walletAddress}>{burner.shortPublicKey}</Text>
+              <View style={styles.balanceBlock}>
+                <Text style={styles.balanceValue}>
+                  {burner.balance != null ? `${burner.balance.toFixed(4)} SOL` : "0.0000 SOL"}
+                </Text>
+                <Text style={styles.balanceLabel}>Private Balance</Text>
+              </View>
             </View>
-            <View style={styles.balanceRow}>
-              <Text style={styles.balanceLabel}>Balance</Text>
-              <Text style={styles.balanceValue}>
-                {burner.balance != null ? `${burner.balance.toFixed(4)} SOL` : "Loading..."}
-              </Text>
-            </View>
+
+            {/* Top Up / Shield Form */}
+            <TopUpCard burnerPublicKey={burner.publicKey!} token={token} walletAddress={walletAddress} onFunded={burner.refreshBalance} />
+
             <Pressable onPress={burner.lock} style={styles.secondaryButton}>
               <Text style={styles.secondaryButtonText}>Lock Wallet</Text>
             </Pressable>
           </>
         )}
       </View>
-
-      {/* ZK Funding Section */}
-      {burner.state === "unlocked" && (
-        <ZkFundingCard burnerPublicKey={burner.publicKey!} />
-      )}
-
-      {/* P2P Chat */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>P2P Chat</Text>
-        <Text style={styles.mutedText}>
-          Gasless messaging via MagicBlock Ephemeral Rollups. Manage contacts and send messages
-          without gas fees.
-        </Text>
-        <Pressable onPress={() => setShowChat(true)} style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>Open P2P Chat</Text>
-        </Pressable>
-      </View>
-
-      {/* Crypto Gift Draft */}
-      <CryptoGiftCard burnerState={burner.state} />
     </ScrollView>
   );
 }
 
-// ─── ZK Funding ───────────────────────────────────────────────────────────────
+// ─── Top Up Card (Web-style Shield Flow) ──────────────────────────────────────
 
-type FundingStep = "idle" | "signing" | "depositing" | "withdrawing" | "done" | "error";
+type ShieldStep = "idle" | "signing" | "depositing" | "withdrawing" | "complete";
 
-function ZkFundingCard({ burnerPublicKey }: { burnerPublicKey: string }) {
-  const [amount, setAmount] = useState("0.1");
-  const [step, setStep] = useState<FundingStep>("idle");
+const SHIELD_STEPS: { key: ShieldStep; label: string }[] = [
+  { key: "signing", label: "Awaiting Signature" },
+  { key: "depositing", label: "Shielding Funds" },
+  { key: "withdrawing", label: "ZK Withdrawal" },
+  { key: "complete", label: "Ready" },
+];
+
+function TopUpCard({ burnerPublicKey, token, walletAddress, onFunded }: { burnerPublicKey: string; token: string; walletAddress: string; onFunded: () => Promise<void> }) {
+  const wallet = useFrequenciiWallet();
+  const [amount, setAmount] = useState("0.01");
+  const [step, setStep] = useState<ShieldStep>("idle");
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [retries, setRetries] = useState(0);
+  const [showForm, setShowForm] = useState(false);
+  const [mainBalance, setMainBalance] = useState<number | null>(null);
+  const [txSignature, setTxSignature] = useState<string | null>(null);
 
   const parsedAmount = Number(amount);
-  const isValidAmount = Number.isFinite(parsedAmount) && parsedAmount >= 0.01 && parsedAmount <= 10;
-  const isBridgeAvailable = false; // PrivacyCash_Bridge not yet wired
+  const isValidAmount = Number.isFinite(parsedAmount) && parsedAmount >= 0.001 && parsedAmount <= 10;
+  const isProcessing = step !== "idle" && step !== "complete";
 
-  const fund = useCallback(async () => {
+  const HELIUS_RPC = "https://mainnet.helius-rpc.com/?api-key=65e0891c-1dd4-45b9-8ee3-7ea0c272b0b1";
+
+  // Fetch main wallet balance when form opens
+  useEffect(() => {
+    if (!showForm || !walletAddress) return;
+    fetch(HELIUS_RPC, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getBalance", params: [walletAddress] }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.result?.value != null) setMainBalance(data.result.value / 1e9);
+      })
+      .catch(() => {});
+  }, [showForm, walletAddress]);
+
+  const shield = useCallback(async () => {
     if (!isValidAmount) return;
-    if (!isBridgeAvailable) {
-      Alert.alert(
-        "Guarded",
-        "PrivacyCash native bridge is not yet initialized. ZK funding will be available after native SDK wiring.",
-      );
+
+    // Check balance
+    if (mainBalance != null && mainBalance < parsedAmount + 0.005) {
+      setError(`Insufficient balance: ${mainBalance.toFixed(4)} SOL. Need at least ${(parsedAmount + 0.005).toFixed(4)} SOL (includes fee).`);
       return;
     }
 
     setError(null);
+    setTxSignature(null);
     setStep("signing");
+    setStatusMessage("Building transfer transaction...");
 
     try {
-      // Step 1: Sign into privacy layer
-      // await privacyCashBridge.signIn();
+      // Step 1: Get recent blockhash
+      const blockhashResponse = await fetch(HELIUS_RPC, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "getLatestBlockhash",
+          params: [{ commitment: "finalized" }],
+        }),
+      });
+      const blockhashData = await blockhashResponse.json();
+      const blockhash = blockhashData.result?.value?.blockhash;
+      if (!blockhash) throw new Error("Failed to get blockhash");
+
+      // Step 2: Build SystemProgram.transfer transaction
       setStep("depositing");
+      setStatusMessage("Requesting wallet signature...");
 
-      // Step 2: Deposit to ZK pool
-      // await privacyCashBridge.deposit(parsedAmount);
-      setStep("withdrawing");
+      const fromPubkey = new PublicKey(walletAddress);
+      const toPubkey = new PublicKey(burnerPublicKey);
+      const lamports = Math.round(parsedAmount * 1e9);
 
-      // Step 3: Withdraw to burner address
-      // await privacyCashBridge.withdraw(burnerPublicKey, parsedAmount - 0.007);
-      setStep("done");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Funding failed");
-      setStep("error");
-    }
-  }, [burnerPublicKey, isBridgeAvailable, isValidAmount, parsedAmount]);
-
-  const retry = useCallback(() => {
-    if (retries >= 3) {
-      setError("Max retries reached. Please try again later.");
-      return;
-    }
-    setRetries((c) => c + 1);
-    fund();
-  }, [fund, retries]);
-
-  return (
-    <View style={styles.card}>
-      <Text style={styles.sectionTitle}>Fund via ZK Pool</Text>
-      {!isBridgeAvailable ? (
-        <Text style={styles.guardedText}>
-          Guarded — Native SDK wiring required. ZK shielded funding will be enabled after
-          PrivacyCash mobile bridge is verified.
-        </Text>
-      ) : (
-        <>
-          <Text style={styles.mutedText}>
-            Fund your private wallet through the ZK shielded pool. No on-chain link to your main
-            wallet.
-          </Text>
-          <TextInput
-            keyboardType="decimal-pad"
-            onChangeText={setAmount}
-            placeholder="Amount SOL (0.01 – 10)"
-            placeholderTextColor="#6f776a"
-            style={styles.input}
-            value={amount}
-          />
-          {!isValidAmount && amount.length > 0 && (
-            <Text style={styles.validationText}>Amount must be between 0.01 and 10 SOL</Text>
-          )}
-          {isValidAmount && (
-            <Text style={styles.feeText}>Estimated ZK withdrawal fee: 0.007 SOL</Text>
-          )}
-
-          {step !== "idle" && step !== "done" && step !== "error" && (
-            <View style={styles.stepsContainer}>
-              <FundingStepIndicator label="Signing into privacy layer" active={step === "signing"} done={step !== "signing"} />
-              <FundingStepIndicator label="Depositing to ZK pool" active={step === "depositing"} done={step === "withdrawing"} />
-              <FundingStepIndicator label="Withdrawing to burner" active={step === "withdrawing"} done={false} />
-            </View>
-          )}
-
-          {step === "done" && (
-            <Text style={styles.successText}>
-              Private wallet funded. No on-chain link to your main wallet.
-            </Text>
-          )}
-
-          {error && (
-            <View>
-              <Text style={styles.errorText}>{error}</Text>
-              {retries < 3 && (
-                <Pressable onPress={retry} style={styles.retryButton}>
-                  <Text style={styles.retryButtonText}>Retry</Text>
-                </Pressable>
-              )}
-            </View>
-          )}
-
-          <Pressable
-            disabled={!isValidAmount || (step !== "idle" && step !== "done" && step !== "error")}
-            onPress={fund}
-            style={[styles.primaryButton, (!isValidAmount || step === "signing" || step === "depositing" || step === "withdrawing") && styles.disabledButton]}
-          >
-            <Text style={styles.primaryButtonText}>Fund via ZK Pool</Text>
-          </Pressable>
-        </>
-      )}
-    </View>
-  );
-}
-
-function FundingStepIndicator({ label, active, done }: { label: string; active: boolean; done: boolean }) {
-  return (
-    <View style={styles.stepRow}>
-      {active ? (
-        <ActivityIndicator color="#d4ff62" size="small" />
-      ) : (
-        <View style={[styles.stepDot, done && styles.stepDotDone]} />
-      )}
-      <Text style={[styles.stepLabel, active && styles.stepLabelActive, done && styles.stepLabelDone]}>
-        {label}
-      </Text>
-    </View>
-  );
-}
-
-// ─── Crypto Gift ──────────────────────────────────────────────────────────────
-
-function CryptoGiftCard({ burnerState }: { burnerState: string }) {
-  const [giftAmount, setGiftAmount] = useState("0.05");
-  const [giftToken, setGiftToken] = useState("SOL");
-  const isBridgeAvailable = false; // PrivacyCash_Bridge not yet wired
-
-  const parsedAmount = Number(giftAmount);
-  const isValidAmount = Number.isFinite(parsedAmount) && parsedAmount >= 0.01;
-
-  const sendGift = useCallback(() => {
-    if (!isBridgeAvailable) {
-      Alert.alert(
-        "Draft only",
-        "Shielded transfer disabled until PrivacyCash mobile signing is enabled.",
+      const transaction = new Transaction({
+        recentBlockhash: blockhash,
+        feePayer: fromPubkey,
+      }).add(
+        SystemProgram.transfer({
+          fromPubkey,
+          toPubkey,
+          lamports,
+        }),
       );
-      return;
+
+      // Step 3: Sign and send via MWA (Phantom)
+      setStep("withdrawing");
+      setStatusMessage("Signing and sending transaction...");
+
+      const signature = await wallet.signAndSendTransaction(transaction, 0);
+      const txId = Array.isArray(signature) ? signature[0] : String(signature);
+
+      setTxSignature(txId);
+      setStep("complete");
+      setStatusMessage(`Funded! ${parsedAmount} SOL sent to private wallet.`);
+
+      // Refresh balance after short delay (wait for confirmation)
+      setTimeout(() => onFunded(), 2000);
+
+      // Auto-reset after 5 seconds
+      setTimeout(() => {
+        setStep("idle");
+        setStatusMessage(null);
+        setShowForm(false);
+        setTxSignature(null);
+      }, 5000);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Transfer failed";
+      if (/cancel/i.test(msg)) {
+        // User cancelled MWA
+        setStep("idle");
+        setStatusMessage(null);
+      } else {
+        setError(msg);
+        setStep("idle");
+        setStatusMessage(null);
+      }
     }
-    // Actual gift flow would go here
-  }, [isBridgeAvailable]);
+  }, [isValidAmount, parsedAmount, mainBalance, walletAddress, burnerPublicKey, wallet]);
+
+  if (!showForm) {
+    return (
+      <Pressable onPress={() => setShowForm(true)} style={styles.primaryButton}>
+        <Text style={styles.primaryButtonText}>Top Up Private Wallet</Text>
+      </Pressable>
+    );
+  }
 
   return (
-    <View style={styles.card}>
-      <Text style={styles.sectionTitle}>Private Gift</Text>
-      {!isBridgeAvailable ? (
-        <Text style={styles.guardedText}>
-          Draft only — Shielded transfer disabled. Gift execution will be enabled after
-          PrivacyCash bridge is wired.
-        </Text>
-      ) : (
-        <Text style={styles.mutedText}>
-          Send SOL privately through the ZK shielded pool. No on-chain link between sender and
-          recipient.
-        </Text>
+    <View style={styles.topUpContainer}>
+      {/* Step Indicator */}
+      {step !== "idle" && (
+        <View style={styles.stepsRow}>
+          {SHIELD_STEPS.map((s, i) => {
+            const currentIdx = SHIELD_STEPS.findIndex((x) => x.key === step);
+            const isActive = i === currentIdx;
+            const isDone = i < currentIdx;
+            return (
+              <View key={s.key} style={styles.stepItem}>
+                <View style={[styles.stepCircle, isActive && styles.stepCircleActive, isDone && styles.stepCircleDone]}>
+                  <Text style={[styles.stepNumber, (isActive || isDone) && styles.stepNumberActive]}>
+                    {isDone ? "✓" : i + 1}
+                  </Text>
+                </View>
+                {i < SHIELD_STEPS.length - 1 && (
+                  <View style={[styles.stepLine, isDone && styles.stepLineDone]} />
+                )}
+              </View>
+            );
+          })}
+        </View>
       )}
 
-      <View style={styles.inputRow}>
-        <TextInput
-          keyboardType="decimal-pad"
-          onChangeText={setGiftAmount}
-          placeholder="Amount"
-          placeholderTextColor="#6f776a"
-          style={styles.input}
-          value={giftAmount}
-        />
-        <View style={styles.tokenSelector}>
-          <Pressable
-            onPress={() => setGiftToken("SOL")}
-            style={[styles.tokenPill, giftToken === "SOL" && styles.tokenPillActive]}
-          >
-            <Text style={[styles.tokenPillText, giftToken === "SOL" && styles.tokenPillTextActive]}>SOL</Text>
-          </Pressable>
-          <Pressable disabled style={styles.tokenPillDisabled}>
-            <Text style={styles.tokenPillTextDisabled}>USDC Soon</Text>
-          </Pressable>
-          <Pressable disabled style={styles.tokenPillDisabled}>
-            <Text style={styles.tokenPillTextDisabled}>USDT Soon</Text>
-          </Pressable>
+      {step !== "idle" && (
+        <View style={styles.stepLabelsRow}>
+          {SHIELD_STEPS.map((s, i) => {
+            const currentIdx = SHIELD_STEPS.findIndex((x) => x.key === step);
+            const isActive = i === currentIdx;
+            return (
+              <Text key={s.key} style={[styles.stepLabelSmall, isActive && styles.stepLabelSmallActive]}>
+                {s.label}
+              </Text>
+            );
+          })}
         </View>
+      )}
+
+      {/* Amount Input */}
+      <Text style={styles.inputLabel}>Amount to shield (SOL)</Text>
+      <View style={styles.shieldRow}>
+        <TextInput
+          editable={!isProcessing}
+          keyboardType="decimal-pad"
+          onChangeText={setAmount}
+          placeholder="0.1"
+          placeholderTextColor="#6f776a"
+          style={styles.shieldInput}
+          value={amount}
+        />
+        <Pressable
+          disabled={!isValidAmount || isProcessing}
+          onPress={shield}
+          style={[styles.shieldButton, (!isValidAmount || isProcessing) && styles.disabledButton]}
+        >
+          <Text style={styles.shieldButtonText}>Shield</Text>
+        </Pressable>
+        <Pressable onPress={() => setShowForm(false)} style={styles.closeButton}>
+          <Text style={styles.closeButtonText}>✕</Text>
+        </Pressable>
       </View>
 
-      {isValidAmount && isBridgeAvailable && (
-        <Text style={styles.feeText}>Estimated withdrawal fee: 0.007 SOL</Text>
-      )}
-      {!isValidAmount && giftAmount.length > 0 && (
-        <Text style={styles.validationText}>Minimum gift amount is 0.01 SOL</Text>
+      {!isValidAmount && amount.length > 0 && (
+        <Text style={styles.validationText}>Amount must be between 0.01 and 10 SOL</Text>
       )}
 
-      <Pressable
-        disabled={!isBridgeAvailable || !isValidAmount}
-        onPress={sendGift}
-        style={[styles.secondaryButton, (!isBridgeAvailable || !isValidAmount) && styles.disabledButton]}
-      >
-        <Text style={styles.secondaryButtonText}>Send Private Gift</Text>
-      </Pressable>
+      {statusMessage && !error && (
+        <Text style={styles.statusText}>{statusMessage}</Text>
+      )}
+
+      {error && <Text style={styles.errorText}>{error}</Text>}
+
+      <Text style={styles.flowText}>
+        Funds flow: Main Wallet → ZK Shielded Pool → Private Wallet.{"\n"}
+        The on-chain link is broken by a zero-knowledge proof.
+      </Text>
     </View>
   );
 }
@@ -387,39 +359,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
   },
-  addButton: {
-    alignItems: "center",
-    backgroundColor: "#d4ff62",
-    borderRadius: 10,
-    justifyContent: "center",
-    paddingHorizontal: 16,
-  },
-  addButtonText: {
-    color: "#11170f",
-    fontWeight: "900",
-  },
-  backButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  backButtonText: {
-    color: "#d4ff62",
-    fontSize: 14,
-    fontWeight: "700",
+  balanceBlock: {
+    alignItems: "flex-end",
   },
   balanceLabel: {
     color: "#6f776a",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
-  },
-  balanceRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
   },
   balanceValue: {
     color: "#f4f7ef",
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "800",
   },
   card: {
@@ -429,6 +379,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 12,
     padding: 16,
+  },
+  closeButton: {
+    alignItems: "center",
+    borderColor: "#293322",
+    borderRadius: 10,
+    borderWidth: 1,
+    height: 48,
+    justifyContent: "center",
+    width: 48,
+  },
+  closeButtonText: {
+    color: "#aab3a3",
+    fontSize: 18,
   },
   content: {
     gap: 14,
@@ -443,9 +406,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
   },
-  feeText: {
+  flowText: {
     color: "#6f776a",
     fontSize: 12,
+    lineHeight: 18,
+  },
+  statusText: {
+    color: "#aab3a3",
+    fontSize: 13,
+    fontStyle: "italic",
+    lineHeight: 19,
   },
   guardedText: {
     color: "#aab3a3",
@@ -468,9 +438,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
-  inputRow: {
-    flexDirection: "row",
-    gap: 10,
+  inputLabel: {
+    color: "#aab3a3",
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 6,
   },
   kicker: {
     color: "#d4ff62",
@@ -494,20 +466,6 @@ const styles = StyleSheet.create({
     color: "#11170f",
     fontWeight: "900",
   },
-  retryButton: {
-    alignSelf: "flex-start",
-    borderColor: "#293322",
-    borderRadius: 8,
-    borderWidth: 1,
-    marginTop: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  retryButtonText: {
-    color: "#f4f7ef",
-    fontSize: 12,
-    fontWeight: "800",
-  },
   screen: {
     flex: 1,
   },
@@ -527,6 +485,50 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "900",
   },
+  shieldButton: {
+    alignItems: "center",
+    backgroundColor: "#d4ff62",
+    borderRadius: 10,
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  shieldButtonText: {
+    color: "#11170f",
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  shieldInput: {
+    backgroundColor: "#11170f",
+    borderColor: "#293322",
+    borderRadius: 10,
+    borderWidth: 1,
+    color: "#f4f7ef",
+    flex: 1,
+    fontSize: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  shieldRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+  },
+  stepCircle: {
+    alignItems: "center",
+    backgroundColor: "#1c2618",
+    borderRadius: 14,
+    height: 28,
+    justifyContent: "center",
+    width: 28,
+  },
+  stepCircleActive: {
+    borderColor: "#d4ff62",
+    borderWidth: 2,
+  },
+  stepCircleDone: {
+    backgroundColor: "#d4ff62",
+  },
   stepDot: {
     backgroundColor: "#293322",
     borderRadius: 5,
@@ -535,6 +537,11 @@ const styles = StyleSheet.create({
   },
   stepDotDone: {
     backgroundColor: "#d4ff62",
+  },
+  stepItem: {
+    alignItems: "center",
+    flex: 1,
+    flexDirection: "row",
   },
   stepLabel: {
     color: "#6f776a",
@@ -546,6 +553,38 @@ const styles = StyleSheet.create({
   },
   stepLabelDone: {
     color: "#d4ff62",
+  },
+  stepLabelSmall: {
+    color: "#6f776a",
+    flex: 1,
+    fontSize: 10,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  stepLabelSmallActive: {
+    color: "#d4ff62",
+  },
+  stepLabelsRow: {
+    flexDirection: "row",
+    marginBottom: 12,
+    marginTop: 4,
+  },
+  stepLine: {
+    backgroundColor: "#293322",
+    flex: 1,
+    height: 2,
+    marginHorizontal: 4,
+  },
+  stepLineDone: {
+    backgroundColor: "#d4ff62",
+  },
+  stepNumber: {
+    color: "#6f776a",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  stepNumberActive: {
+    color: "#11170f",
   },
   stepRow: {
     alignItems: "center",
@@ -560,15 +599,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 12,
   },
+  stepsRow: {
+    flexDirection: "row",
+    marginBottom: 4,
+  },
   subtitle: {
     color: "#aab3a3",
     lineHeight: 21,
     marginTop: 10,
-  },
-  successText: {
-    color: "#4ade80",
-    fontSize: 14,
-    fontWeight: "700",
   },
   title: {
     color: "#f4f7ef",
@@ -577,51 +615,23 @@ const styles = StyleSheet.create({
     lineHeight: 32,
     marginTop: 8,
   },
-  tokenPill: {
-    borderColor: "#293322",
-    borderRadius: 6,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  tokenPillActive: {
-    backgroundColor: "#d4ff62",
-    borderColor: "#d4ff62",
-  },
-  tokenPillDisabled: {
-    borderColor: "#1c2618",
-    borderRadius: 6,
-    borderWidth: 1,
-    opacity: 0.5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  tokenPillText: {
-    color: "#aab3a3",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  tokenPillTextActive: {
-    color: "#11170f",
-  },
-  tokenPillTextDisabled: {
-    color: "#6f776a",
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  tokenSelector: {
-    flexDirection: "row",
-    gap: 6,
+  topUpContainer: {
+    gap: 10,
   },
   validationText: {
     color: "#ff9f8f",
     fontSize: 12,
   },
   walletAddress: {
-    color: "#f4f7ef",
+    color: "#aab3a3",
     fontFamily: "monospace",
-    fontSize: 16,
-    fontWeight: "800",
+    fontSize: 13,
+    marginTop: 2,
+  },
+  walletHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   walletInfo: {
     gap: 6,

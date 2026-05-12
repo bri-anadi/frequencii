@@ -6,7 +6,13 @@ function resolveDbPath() {
     return process.env.FREQUENCII_DB_PATH;
   }
 
-  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  // Vercel/Lambda/serverless: only /tmp is writable
+  if (
+    process.env.VERCEL ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME ||
+    process.cwd() === "/var/task" ||
+    process.cwd().startsWith("/var/task")
+  ) {
     return path.join("/tmp", "frequencii.db");
   }
 

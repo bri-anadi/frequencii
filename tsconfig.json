@@ -44,6 +44,5 @@
     "contracts",
     "apps",
     "packages"
-  ],
-  "extends": "expo/tsconfig.base"
+  ]
 }

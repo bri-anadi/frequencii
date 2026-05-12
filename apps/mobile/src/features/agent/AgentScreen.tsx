@@ -22,8 +22,7 @@ const quickActions = [
   "Find high-volume crypto markets",
 ];
 
-export function AgentScreen({ token }: { token: string }) {
-  const agent = useMobileAgent(token);
+export function AgentScreen({ token, agent }: { token: string; agent: ReturnType<typeof import("./useMobileAgent").useMobileAgent> }) {
   const [input, setInput] = useState("");
   const [markets, setMarkets] = useState<PredictionEvent[]>([]);
   const [selectedMarket, setSelectedMarket] = useState<PredictionEvent | null>(null);

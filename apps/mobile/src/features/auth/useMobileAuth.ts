@@ -136,53 +136,58 @@ export function useMobileAuth() {
     const isCurrentAttempt = () => signInAttemptRef.current === attemptId;
 
     try {
-      // Clear stale MWA auth to force fresh authorize (prevents reauthorize failures)
-      await walletAuthorizationCache.clear();
-      await wallet.disconnect().catch(() => undefined);
-
       const message = `Frequencii Auth: ${Date.now()}`;
+      const payload = new Uint8Array(Buffer.from(message, "utf8"));
 
-      // Use connectAnd to authorize + sign in ONE transact session (one wallet open)
-      const result = await withWalletTimeout(
-        wallet.connectAnd(async (mwaWallet) => {
-          // authorize inside the same session
-          const authResult = await mwaWallet.authorize({
-            chain: wallet.chain,
-            identity: wallet.identity,
-          });
+      // Step 1: Connect (authorize) — opens Phantom
+      const account = await withWalletTimeout(wallet.connect(), "connect");
+      if (!isCurrentAttempt() || !account) return null;
 
-          const account = authResult.accounts[0];
-          const pubkey = account?.address?.toBase58?.() ?? account?.address ?? account?.publicKey?.toBase58?.();
-          if (!pubkey) throw new Error("Wallet did not return a public key");
+      const pubkey = getWalletAccountAddress(account);
+      if (!pubkey) throw new Error("Wallet did not return a public key");
 
-          // sign inside the same session (no second wallet open)
-          const payload = Buffer.from(message, "utf8");
-          const signedPayloads = await mwaWallet.signMessages({
-            addresses: [account.addressBase64],
-            payloads: [payload],
-          });
-
-          // MWA signMessages returns signature(64) + message
-          const signature = (signedPayloads[0] as Uint8Array).slice(0, 64);
-          return { pubkey: String(pubkey), signature };
-        }),
-        "connect",
-      );
-
-      if (!isCurrentAttempt() || !result) return null;
-
-      const { pubkey, signature } = result as { pubkey: string; signature: Uint8Array };
-
-      const response = await apiRequest<LoginResponse>("/api/v1/auth/login", {
-        method: "POST",
-        body: JSON.stringify({
-          pubkey,
-          message,
-          signature: bs58.encode(signature),
-        }),
-      });
+      // Small delay to let Phantom close cleanly before reopening for sign
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       if (!isCurrentAttempt()) return null;
+
+      // Step 2: Sign message — opens Phantom again
+      const signedPayload = await withWalletTimeout(
+        wallet.signMessages(payload),
+        "sign",
+      );
+      if (!isCurrentAttempt()) return null;
+
+      // signMessages with single Uint8Array returns single Uint8Array
+      // Format: signature(64 bytes) + original message
+      const signed = signedPayload as Uint8Array;
+      const signature = signed.slice(0, 64);
+
+      // Retry API call up to 2 times on network failure
+      let response: LoginResponse | null = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          response = await apiRequest<LoginResponse>("/api/v1/auth/login", {
+            method: "POST",
+            body: JSON.stringify({
+              pubkey,
+              message,
+              signature: bs58.encode(signature),
+            }),
+          });
+          break;
+        } catch (fetchErr) {
+          const msg = fetchErr instanceof Error ? fetchErr.message : "";
+          if (/network|fetch|failed/i.test(msg) && attempt < 2) {
+            // Wait before retry (network might not be ready after returning from Phantom)
+            await new Promise((r) => setTimeout(r, 1500));
+            continue;
+          }
+          throw fetchErr;
+        }
+      }
+
+      if (!isCurrentAttempt() || !response) return null;
 
       await storeSession(response);
 
@@ -194,7 +199,13 @@ export function useMobileAuth() {
         await safeDisconnect(wallet);
       }
       if (isCurrentAttempt()) {
-        setError(getAuthErrorMessage(err));
+        // Show detailed API errors for debugging
+        if (err && typeof err === "object" && "status" in err) {
+          const apiErr = err as { status: number; message: string; details?: string };
+          setError(`${apiErr.message}${apiErr.details ? ` (${apiErr.details})` : ""}`);
+        } else {
+          setError(getAuthErrorMessage(err));
+        }
       }
       return null;
     } finally {

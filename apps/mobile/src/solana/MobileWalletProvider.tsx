@@ -6,7 +6,7 @@ import { walletAuthorizationCache } from "./authorizationCache";
 const identity = {
   name: "Frequencii",
   uri: "https://frequencii.world",
-  icon: "https://frequencii.world/favicon.ico",
+  icon: "favicon.ico",
 };
 
 export function MobileWalletProvider({ children }: { children: ReactNode }) {

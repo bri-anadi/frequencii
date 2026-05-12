@@ -6,6 +6,7 @@ import { API_BASE_URL } from "../../config/env";
 
 const BURNER_PUBKEY_KEY = "frequencii_burner_pubkey";
 const BURNER_ENCRYPTED_KEY = "frequencii_burner_encrypted";
+const BURNER_OWNER_KEY = "frequencii_burner_owner";
 const SIGN_MESSAGE = "Frequencii Private Prediction Wallet";
 const BALANCE_POLL_INTERVAL = 15_000;
 
@@ -77,25 +78,39 @@ export function useBurnerWallet() {
   const keypairRef = useRef<Keypair | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Check if burner wallet exists on mount
+  // Check if burner wallet exists on mount and matches current main wallet
   useEffect(() => {
     async function check() {
       const storedPubkey = await SecureStore.getItemAsync(BURNER_PUBKEY_KEY);
+      const storedOwner = await SecureStore.getItemAsync(BURNER_OWNER_KEY);
+
       if (storedPubkey) {
-        setPublicKey(storedPubkey);
-        setState("locked");
+        // If no owner stored (legacy) or owner doesn't match current wallet, reset
+        if (wallet.address && (!storedOwner || storedOwner !== wallet.address)) {
+          await SecureStore.deleteItemAsync(BURNER_PUBKEY_KEY);
+          await SecureStore.deleteItemAsync(BURNER_ENCRYPTED_KEY);
+          await SecureStore.deleteItemAsync(BURNER_OWNER_KEY);
+          setPublicKey(null);
+          setState("none");
+          setError(null);
+        } else {
+          setPublicKey(storedPubkey);
+          setState("locked");
+          setError(null);
+        }
       } else {
         setState("none");
+        setError(null);
       }
     }
     check();
-  }, []);
+  }, [wallet.address]);
 
   // Balance polling
   const startBalancePolling = useCallback((pubkey: string) => {
     const fetchBalance = async () => {
       try {
-        const rpcUrl = process.env.EXPO_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+        const rpcUrl = "https://mainnet.helius-rpc.com/?api-key=65e0891c-1dd4-45b9-8ee3-7ea0c272b0b1";
         const response = await fetch(rpcUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -179,6 +194,7 @@ export function useBurnerWallet() {
       try {
         await SecureStore.setItemAsync(BURNER_ENCRYPTED_KEY, ciphertext);
         await SecureStore.setItemAsync(BURNER_PUBKEY_KEY, pubkeyStr);
+        await SecureStore.setItemAsync(BURNER_OWNER_KEY, wallet.address || "");
       } catch {
         throw new Error("Failed to save wallet. Check device storage and try again.");
       }
@@ -271,13 +287,36 @@ export function useBurnerWallet() {
     stopBalancePolling();
   }, [stopBalancePolling]);
 
-  // Cleanup on unmount
+  // Cleanup polling on unmount (but don't lock the wallet)
   useEffect(() => {
     return () => {
-      keypairRef.current = null;
       stopBalancePolling();
     };
   }, [stopBalancePolling]);
+
+  // Manual balance refresh
+  const refreshBalance = useCallback(async () => {
+    if (!publicKey) return;
+    try {
+      const rpcUrl = "https://mainnet.helius-rpc.com/?api-key=65e0891c-1dd4-45b9-8ee3-7ea0c272b0b1";
+      const response = await fetch(rpcUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "getBalance",
+          params: [publicKey],
+        }),
+      });
+      const data = await response.json();
+      if (data.result?.value != null) {
+        setBalance(data.result.value / 1e9);
+      }
+    } catch {
+      // Silent
+    }
+  }, [publicKey]);
 
   const shortPublicKey = publicKey
     ? `${publicKey.slice(0, 4)}...${publicKey.slice(-4)}`
@@ -289,6 +328,7 @@ export function useBurnerWallet() {
     keypair: keypairRef.current,
     lock,
     publicKey,
+    refreshBalance,
     setup,
     setupStep,
     shortPublicKey,

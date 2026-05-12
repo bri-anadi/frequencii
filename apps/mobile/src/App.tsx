@@ -1,13 +1,17 @@
 import { StatusBar } from "expo-status-bar";
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
+  SafeAreaView,
+  StatusBar as RNStatusBar,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { useState } from "react";
 import { AgentScreen } from "./features/agent/AgentScreen";
+import { useMobileAgent } from "./features/agent/useMobileAgent";
 import { MarketsScreen } from "./features/markets/MarketsScreen";
 import { PositionsScreen } from "./features/positions/PositionsScreen";
 import { PrivacyScreen } from "./features/privacy/PrivacyScreen";
@@ -16,10 +20,10 @@ import { SeekerPanel } from "./features/seeker/SeekerPanel";
 import { useMobileAuth } from "./features/auth/useMobileAuth";
 import { MobileWalletProvider } from "./solana/MobileWalletProvider";
 
-type ActiveTab = "chat" | "markets" | "positions" | "privacy" | "seeker" | "profile";
+type ActiveTab = "agent" | "markets" | "positions" | "privacy" | "seeker" | "profile";
 
 const tabs: { key: ActiveTab; label: string; icon: string }[] = [
-  { key: "chat", label: "Chat", icon: "💬" },
+  { key: "agent", label: "Agent", icon: "🤖" },
   { key: "markets", label: "Markets", icon: "📊" },
   { key: "positions", label: "Portfolio", icon: "💰" },
   { key: "privacy", label: "Privacy", icon: "🔒" },
@@ -29,24 +33,25 @@ const tabs: { key: ActiveTab; label: string; icon: string }[] = [
 
 function AppShell() {
   const auth = useMobileAuth();
-  const [activeTab, setActiveTab] = useState<ActiveTab>("chat");
+  const agent = useMobileAgent(auth.token ?? "");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("markets");
   const walletAddress = auth.wallet.address;
 
   if (auth.isRestoring) {
     return (
-      <View style={styles.screen}>
+      <SafeAreaView style={styles.screen}>
         <StatusBar style="light" />
         <View style={styles.centerState}>
           <ActivityIndicator color="#d4ff62" />
           <Text style={styles.mutedText}>Restoring session</Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (!auth.token || !walletAddress) {
     return (
-      <View style={styles.screen}>
+      <SafeAreaView style={styles.screen}>
         <StatusBar style="light" />
         <View style={styles.hero}>
           <Text style={styles.kicker}>Solana Mobile</Text>
@@ -81,12 +86,12 @@ function AppShell() {
             </Text>
           </Pressable>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaView style={styles.screen}>
       <StatusBar style="light" />
       <View style={styles.header}>
         <View>
@@ -101,14 +106,14 @@ function AppShell() {
       </View>
 
       <View style={styles.content}>
-        {activeTab === "chat" ? (
-          <AgentScreen token={auth.token} />
+        {activeTab === "agent" ? (
+          <AgentScreen token={auth.token} agent={agent} />
         ) : activeTab === "markets" ? (
           <MarketsScreen token={auth.token} walletAddress={walletAddress} />
         ) : activeTab === "positions" ? (
           <PositionsScreen token={auth.token} walletAddress={walletAddress} />
         ) : activeTab === "privacy" ? (
-          <PrivacyScreen walletAddress={walletAddress} />
+          <PrivacyScreen walletAddress={walletAddress} token={auth.token} />
         ) : activeTab === "seeker" ? (
           <SeekerPanel token={auth.token} walletAddress={walletAddress} />
         ) : (
@@ -143,7 +148,7 @@ function AppShell() {
           </Pressable>
         ))}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -167,7 +172,7 @@ const styles = StyleSheet.create({
     borderTopColor: "#1c2618",
     borderTopWidth: 1,
     flexDirection: "row",
-    paddingBottom: 20,
+    paddingBottom: Platform.OS === "android" ? 8 : 20,
     paddingTop: 8,
   },
   centerState: {
@@ -250,6 +255,7 @@ const styles = StyleSheet.create({
   screen: {
     backgroundColor: "#070907",
     flex: 1,
+    paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight ?? 0 : 0,
   },
   signOutButton: {
     borderColor: "#293322",

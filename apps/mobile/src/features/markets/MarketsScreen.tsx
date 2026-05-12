@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -99,10 +100,20 @@ export function MarketsScreen({ token, walletAddress }: MarketsScreenProps) {
 
         if (controller.signal.aborted) return;
 
+        // Filter out ended/closed events
+        const activeEvents = response.events.filter((e: PredictionEvent) => {
+          if (e.closed) return false;
+          if (e.endDate) {
+            const end = new Date(e.endDate).getTime();
+            if (end > 0 && end < Date.now()) return false;
+          }
+          return true;
+        });
+
         if (append) {
-          setEvents((current) => [...current, ...response.events]);
+          setEvents((current) => [...current, ...activeEvents]);
         } else {
-          setEvents(response.events);
+          setEvents(activeEvents);
         }
 
         offsetRef.current = offset + response.events.length;
@@ -221,20 +232,6 @@ export function MarketsScreen({ token, walletAddress }: MarketsScreenProps) {
         })}
       </ScrollView>
 
-      <View style={styles.sortRow}>
-        {sortOptions.map((option) => (
-          <Pressable
-            key={option.key}
-            onPress={() => setSort(option.key)}
-            style={[styles.sortPill, sort === option.key && styles.sortPillActive]}
-          >
-            <Text style={[styles.sortText, sort === option.key && styles.sortTextActive]}>
-              {option.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
       {isLoading && events.length === 0 ? (
         <SkeletonList count={6} />
       ) : error ? (
@@ -311,25 +308,90 @@ function MarketRow({
   onOpen: () => void;
   onToggleWatchlist: () => void;
 }) {
-  const price = event.markets[0]?.outcomePrices?.[0] ?? event.markets[0]?.lastTradePrice ?? 0;
+  const market = event.markets?.[0];
+  const rawYes = market?.outcomePrices?.[0] ?? 0.5;
+  const rawNo = market?.outcomePrices?.[1] ?? 0.5;
+  // Use lastTradePrice if outcomePrices are default 0.5/0.5
+  const yesPrice = (rawYes === 0.5 && market?.lastTradePrice) ? market.lastTradePrice : rawYes;
+  const noPrice = (rawNo === 0.5 && market?.lastTradePrice) ? (1 - market.lastTradePrice) : rawNo;
+  const yesPercent = yesPrice * 100;
+  const noPercent = noPrice * 100;
+
+  const formatVolume = (vol: number) => {
+    if (vol >= 1_000_000) return `$${(vol / 1_000_000).toFixed(1)}M`;
+    if (vol >= 1_000) return `$${(vol / 1_000).toFixed(1)}K`;
+    return `$${vol.toFixed(0)}`;
+  };
+
+  const getDaysLeft = (dateStr: string | undefined) => {
+    if (!dateStr) return null;
+    try {
+      const diff = new Date(dateStr).getTime() - Date.now();
+      if (diff <= 0) return "Ended";
+      const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+      return days === 1 ? "1d left" : `${days}d left`;
+    } catch {
+      return null;
+    }
+  };
+
+  const daysLeft = getDaysLeft(event.endDate);
 
   return (
-    <Pressable onPress={onOpen} style={styles.marketRow}>
-      <View style={styles.marketMain}>
-        <Text numberOfLines={3} style={styles.marketTitle}>
-          {event.title || event.markets[0]?.question || "Untitled market"}
-        </Text>
-        <Text style={styles.marketMeta}>
-          {event.category || "Market"} · ${Math.round(event.volume).toLocaleString()} vol
-        </Text>
-      </View>
-      <View style={styles.marketAside}>
-        <Pressable onPress={onToggleWatchlist} style={styles.watchButton}>
-          <Text style={[styles.watchButtonText, isWatched && styles.watchButtonTextActive]}>
-            {isWatched ? "Saved" : "Save"}
+    <Pressable onPress={onOpen} style={styles.marketCard}>
+      {/* Image + Title row */}
+      <View style={styles.marketCardHeader}>
+        {event.image ? (
+          <Image
+            source={{ uri: event.image }}
+            style={styles.marketImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={[styles.marketImage, styles.marketImageFallback]}>
+            <Text style={styles.marketImagePlaceholder}>📊</Text>
+          </View>
+        )}
+        <View style={styles.marketTitleBlock}>
+          <Text numberOfLines={2} style={styles.marketTitle}>
+            {event.title || market?.question || "Untitled market"}
           </Text>
-        </Pressable>
-        <Text style={styles.priceText}>{Math.round(price * 100)}%</Text>
+          {/* Meta row: category · days left */}
+          <View style={styles.metaRow}>
+            {event.category ? (
+              <Text style={styles.metaText}>{event.category}</Text>
+            ) : null}
+            {daysLeft ? (
+              <>
+                <Text style={styles.metaDot}>·</Text>
+                <Text style={styles.metaText}>{daysLeft}</Text>
+              </>
+            ) : null}
+          </View>
+        </View>
+      </View>
+
+      {/* Description */}
+      {event.description ? (
+        <Text numberOfLines={2} style={styles.descriptionText}>
+          {event.description}
+        </Text>
+      ) : null}
+
+      {/* Odds bar */}
+      <View style={styles.oddsBar}>
+        <View style={[styles.oddsYes, { flex: yesPercent }]} />
+        <View style={[styles.oddsNo, { flex: 100 - yesPercent }]} />
+      </View>
+
+      {/* Odds + Volume row */}
+      <View style={styles.oddsRow}>
+        <View style={styles.oddsLabels}>
+          <Text style={styles.yesText}>Yes {yesPercent.toFixed(1)}¢</Text>
+          <Text style={styles.oddsDivider}>/</Text>
+          <Text style={styles.noText}>No {noPercent.toFixed(1)}¢</Text>
+        </View>
+        <Text style={styles.volumeText}>{formatVolume(event.volume)}</Text>
       </View>
     </Pressable>
   );
@@ -349,14 +411,32 @@ function MarketDetailSheet({
   walletAddress: string;
 }) {
   const [amount, setAmount] = useState("1");
+  const [selectedMarketIdx, setSelectedMarketIdx] = useState(0);
   const [selectedOutcome, setSelectedOutcome] = useState<TradeOutcome>("YES");
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [tradeState, setTradeState] = useState<TradeState>("idle");
+
+  // Fetch wallet balance when sheet opens
+  useEffect(() => {
+    if (!event || !walletAddress) return;
+    const rpcUrl = process.env.EXPO_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+    fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getBalance", params: [walletAddress] }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.result?.value != null) setWalletBalance(data.result.value / 1e9);
+      })
+      .catch(() => {});
+  }, [event, walletAddress]);
   const [tradeError, setTradeError] = useState<string | null>(null);
   const [txId, setTxId] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const trade = useMobileJupiterPredict(token);
 
-  const market = event?.markets[0];
+  const market = event?.markets[selectedMarketIdx] ?? event?.markets[0];
   const parsedAmount = useMemo(() => Number(amount), [amount]);
   const price = market?.outcomePrices?.[selectedOutcome === "YES" ? 0 : 1] ?? market?.lastTradePrice ?? 0.5;
   const estimatedShares = price > 0 ? parsedAmount / price : 0;
@@ -424,13 +504,119 @@ function MarketDetailSheet({
   }, [retryCount, submitTrade]);
 
   return (
-    <BottomSheet visible={Boolean(event)} onClose={onClose} heightFraction={0.85}>
+    <BottomSheet visible={Boolean(event)} onClose={onClose} heightFraction={0.9}>
       <ScrollView contentContainerStyle={styles.sheetContent}>
-        <Text style={styles.detailTitle}>{event?.title}</Text>
-        <Text style={styles.detailDescription}>
-          {event?.description || market?.description}
-        </Text>
+        {/* Hero Image */}
+        {event?.image ? (
+          <Image
+            source={{ uri: event.image }}
+            style={styles.detailImage}
+            resizeMode="cover"
+          />
+        ) : null}
 
+        {/* Title */}
+        <Text style={styles.detailTitle}>{event?.title}</Text>
+
+        {/* Category + Days left */}
+        <View style={styles.detailMetaRow}>
+          {event?.category ? (
+            <View style={styles.detailCategoryPill}>
+              <Text style={styles.detailCategoryText}>{event.category}</Text>
+            </View>
+          ) : null}
+          {event?.endDate ? (
+            <Text style={styles.detailMetaText}>
+              {(() => {
+                const diff = new Date(event.endDate).getTime() - Date.now();
+                if (diff <= 0) return "Ended";
+                const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                return `${days} days left`;
+              })()}
+            </Text>
+          ) : null}
+        </View>
+
+        {/* All Markets / Options */}
+        {event?.markets && event.markets.length > 0 && (
+          <View style={styles.marketsSection}>
+            {event.markets.map((m, idx) => {
+              const mYes = m.outcomePrices?.[0] ?? 0.5;
+              const mNo = m.outcomePrices?.[1] ?? 0.5;
+              // Use lastTradePrice as the real price when outcomePrices are default
+              const realYes = (mYes === 0.5 && m.lastTradePrice && m.lastTradePrice !== 0.5)
+                ? m.lastTradePrice : mYes;
+              const realNo = (mNo === 0.5 && m.lastTradePrice && m.lastTradePrice !== 0.5)
+                ? (1 - m.lastTradePrice) : mNo;
+              const isSelected = idx === selectedMarketIdx;
+
+              // Per-market volume is in SOL units from API
+              const marketVol = m.volume ?? 0;
+
+              return (
+                <View key={m.id} style={[styles.optionCard, isSelected && styles.optionCardSelected]}>
+                  <View style={styles.optionHeader}>
+                    <Text numberOfLines={1} style={styles.optionTitle}>{m.question || "Option"}</Text>
+                    <Text style={styles.optionPercent}>{(realYes * 100).toFixed(0)}%</Text>
+                  </View>
+                  {marketVol > 0 && (
+                    <Text style={styles.optionVolume}>
+                      {marketVol >= 1000 ? `${(marketVol / 1000).toFixed(1)}K` : marketVol.toFixed(1)} SOL vol
+                    </Text>
+                  )}
+                  <View style={styles.optionOddsRow}>
+                    <Pressable
+                      onPress={() => { setSelectedMarketIdx(idx); setSelectedOutcome("YES"); }}
+                      style={[styles.optionYesPill, isSelected && selectedOutcome === "YES" && styles.optionYesPillActive]}
+                    >
+                      <Text style={[styles.optionYesText, isSelected && selectedOutcome === "YES" && styles.optionYesTextActive]}>Yes {(realYes * 100).toFixed(1)}¢</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => { setSelectedMarketIdx(idx); setSelectedOutcome("NO"); }}
+                      style={[styles.optionNoPill, isSelected && selectedOutcome === "NO" && styles.optionNoPillActive]}
+                    >
+                      <Text style={[styles.optionNoText, isSelected && selectedOutcome === "NO" && styles.optionNoTextActive]}>No {(realNo * 100).toFixed(1)}¢</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        {/* Volume / 24h / End Date stats */}
+        <View style={styles.statsRow}>
+          <View style={styles.statBlock}>
+            <Text style={styles.statLabel}>Volume</Text>
+            <Text style={styles.statValue}>
+              {event?.volume ? (event.volume >= 1_000_000 ? `$${(event.volume / 1_000_000).toFixed(1)}M` : event.volume >= 1_000 ? `$${(event.volume / 1_000).toFixed(1)}K` : `$${event.volume.toFixed(0)}`) : "$0"}
+            </Text>
+          </View>
+          <View style={styles.statBlock}>
+            <Text style={styles.statLabel}>24h Volume</Text>
+            <Text style={styles.statValue}>
+              {(event as any)?.volume24hr ? ((event as any).volume24hr >= 1_000_000 ? `$${((event as any).volume24hr / 1_000_000).toFixed(1)}M` : `$${((event as any).volume24hr / 1_000).toFixed(1)}K`) : "—"}
+            </Text>
+          </View>
+          <View style={styles.statBlock}>
+            <Text style={styles.statLabel}>End Date</Text>
+            <Text style={styles.statValue}>
+              {event?.endDate ? new Date(event.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+            </Text>
+          </View>
+        </View>
+
+        {/* Description */}
+        {(event?.description || market?.description) ? (
+          <View style={styles.descriptionSection}>
+            <Text style={styles.descriptionLabel}>Description</Text>
+            <Text style={styles.detailDescription}>
+              {event?.description || market?.description}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* Trade Section */}
         {tradeState === "submitted" && txId ? (
           <View style={styles.successCard}>
             <Text style={styles.successText}>Trade submitted</Text>
@@ -446,47 +632,89 @@ function MarketDetailSheet({
           </View>
         ) : (
           <>
-            <View style={styles.outcomeRow}>
-              {(["YES", "NO"] as TradeOutcome[]).map((outcome) => (
+            <View style={styles.tradeSection}>
+              <Text style={styles.tradeSectionTitle}>Trade Privately</Text>
+              {market && (
+                <Text style={styles.tradeMarketName}>
+                  {market.question || event?.title || "Selected market"}
+                </Text>
+              )}
+
+              {/* Yes/No with real prices */}
+              <View style={styles.outcomeRow}>
                 <Pressable
-                  key={outcome}
-                  onPress={() => setSelectedOutcome(outcome)}
-                  style={[
-                    styles.outcomeButton,
-                    selectedOutcome === outcome && styles.outcomeButtonActive,
-                  ]}
+                  onPress={() => setSelectedOutcome("YES")}
+                  style={[styles.outcomeButton, selectedOutcome === "YES" && styles.outcomeButtonYesActive]}
                 >
-                  <Text
-                    style={[
-                      styles.outcomeButtonText,
-                      selectedOutcome === outcome && styles.outcomeButtonTextActive,
-                    ]}
-                  >
-                    {outcome}
+                  <Text style={[styles.outcomeButtonText, selectedOutcome === "YES" && styles.outcomeButtonTextActive]}>
+                    YES ({(price * 100).toFixed(1)}¢)
                   </Text>
                 </Pressable>
-              ))}
-            </View>
+                <Pressable
+                  onPress={() => setSelectedOutcome("NO")}
+                  style={[styles.outcomeButton, selectedOutcome === "NO" && styles.outcomeButtonNoActive]}
+                >
+                  <Text style={[styles.outcomeButtonText, selectedOutcome === "NO" && styles.outcomeButtonNoTextActive]}>
+                    NO ({((1 - price) * 100).toFixed(1)}¢)
+                  </Text>
+                </Pressable>
+              </View>
 
-            <TextInput
-              keyboardType="decimal-pad"
-              onChangeText={setAmount}
-              placeholder="Amount USDC"
-              placeholderTextColor="#6f776a"
-              style={styles.amountInput}
-              value={amount}
-            />
-
-            {parsedAmount > 0 && (
-              <View style={styles.estimateRow}>
-                <Text style={styles.estimateText}>
-                  ~{estimatedShares.toFixed(4)} shares · {priceImpact.toFixed(2)}% impact
-                </Text>
-                <Text style={styles.estimateText}>
-                  Fee payer: {walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}
+              {/* Amount input */}
+              <View style={styles.amountRow}>
+                <Text style={styles.amountLabel}>Amount (SOL)</Text>
+                <Text style={styles.balanceHint}>
+                  Balance: {walletBalance != null ? `${walletBalance.toFixed(4)} SOL` : "— SOL"}
                 </Text>
               </View>
-            )}
+              <TextInput
+                keyboardType="decimal-pad"
+                onChangeText={setAmount}
+                placeholder="0.1"
+                placeholderTextColor="#6f776a"
+                style={styles.amountInput}
+                value={amount}
+              />
+
+              {/* Insufficient balance warning */}
+              {walletBalance != null && walletBalance < 0.001 && (
+                <View style={styles.topupWarning}>
+                  <Text style={styles.topupWarningText}>
+                    Insufficient balance. Please top up your wallet to trade.
+                  </Text>
+                </View>
+              )}
+
+              {walletBalance != null && parsedAmount > walletBalance && walletBalance >= 0.001 && (
+                <View style={styles.topupWarning}>
+                  <Text style={styles.topupWarningText}>
+                    Insufficient balance: {walletBalance.toFixed(4)} SOL. Need at least {parsedAmount} SOL.
+                  </Text>
+                </View>
+              )}
+
+              {/* Trade estimate card */}
+              {parsedAmount > 0 && (
+                <View style={styles.estimateCard}>
+                  <View style={styles.estimateItem}>
+                    <Text style={styles.estimateLabel}>Implied probability</Text>
+                    <Text style={styles.estimateValue}>{(price * 100).toFixed(1)}¢</Text>
+                  </View>
+                  <View style={styles.estimateItem}>
+                    <Text style={styles.estimateLabel}>Potential payout</Text>
+                    <Text style={styles.estimateValue}>{(parsedAmount / price).toFixed(4)} SOL</Text>
+                  </View>
+                  <View style={styles.estimateItem}>
+                    <Text style={styles.estimateLabel}>Potential profit</Text>
+                    <Text style={styles.estimateProfit}>+{((parsedAmount / price) - parsedAmount).toFixed(4)} SOL</Text>
+                  </View>
+                </View>
+              )}
+
+              <Text style={styles.privacyNote}>
+                This trade will be signed by your private wallet. Your main wallet identity is not linked to this position.
+              </Text>
+            </View>
 
             {tradeState !== "idle" && tradeState !== "submitted" && (
               <View style={styles.stepsCard}>
@@ -560,10 +788,11 @@ const styles = StyleSheet.create({
   },
   categoryPill: {
     borderColor: "#293322",
-    borderRadius: 8,
+    borderRadius: 16,
     borderWidth: 1,
     marginRight: 8,
-    paddingHorizontal: 12,
+    minHeight: 36,
+    paddingHorizontal: 14,
     paddingVertical: 8,
   },
   categoryPillActive: {
@@ -577,10 +806,12 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     color: "#aab3a3",
-    fontWeight: "700",
+    fontSize: 13,
+    fontWeight: "600",
   },
   categoryTextActive: {
     color: "#11170f",
+    fontSize: 13,
   },
   centerState: {
     alignItems: "center",
@@ -605,9 +836,37 @@ const styles = StyleSheet.create({
   },
   detailDescription: {
     color: "#aab3a3",
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 20,
+    fontSize: 14,
+    lineHeight: 21,
+    marginBottom: 16,
+  },
+  detailImage: {
+    borderRadius: 12,
+    height: 180,
+    marginBottom: 16,
+    width: "100%",
+  },
+  detailMetaRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 16,
+  },
+  detailMetaText: {
+    color: "#aab3a3",
+    fontSize: 13,
+  },
+  detailCategoryPill: {
+    backgroundColor: "#1c2618",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  detailCategoryText: {
+    color: "#f4f7ef",
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "capitalize",
   },
   detailTitle: {
     color: "#f4f7ef",
@@ -615,6 +874,225 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     lineHeight: 28,
     marginBottom: 10,
+  },
+  descriptionSection: {
+    borderTopColor: "#1c2618",
+    borderTopWidth: 1,
+    marginBottom: 16,
+    paddingTop: 14,
+  },
+  descriptionLabel: {
+    color: "#6f776a",
+    fontSize: 12,
+    fontWeight: "700",
+    marginBottom: 6,
+    textTransform: "uppercase",
+  },
+  marketsSection: {
+    gap: 8,
+    marginBottom: 16,
+  },
+  optionCard: {
+    backgroundColor: "#11170f",
+    borderColor: "#243020",
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+    padding: 12,
+  },
+  optionCardSelected: {
+    borderColor: "#d4ff62",
+  },
+  optionHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  optionTitle: {
+    color: "#f4f7ef",
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  optionPercent: {
+    color: "#f4f7ef",
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  optionVolume: {
+    color: "#6f776a",
+    fontSize: 12,
+  },
+  optionOddsRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  optionYesPill: {
+    borderColor: "#4ade80",
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  optionYesPillActive: {
+    backgroundColor: "#4ade80",
+  },
+  optionYesText: {
+    color: "#4ade80",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  optionYesTextActive: {
+    color: "#ffffff",
+  },
+  optionNoPill: {
+    borderColor: "#ef4444",
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  optionNoPillActive: {
+    backgroundColor: "#ef4444",
+  },
+  optionNoText: {
+    color: "#ef4444",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  optionNoTextActive: {
+    color: "#ffffff",
+  },
+  statsRow: {
+    borderTopColor: "#1c2618",
+    borderTopWidth: 1,
+    flexDirection: "row",
+    marginBottom: 16,
+    paddingTop: 14,
+  },
+  statBlock: {
+    flex: 1,
+    gap: 4,
+  },
+  statLabel: {
+    color: "#6f776a",
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
+  statValue: {
+    color: "#f4f7ef",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  tradeSection: {
+    borderTopColor: "#1c2618",
+    borderTopWidth: 1,
+    gap: 12,
+    marginBottom: 14,
+    paddingTop: 14,
+  },
+  tradeSectionTitle: {
+    color: "#f4f7ef",
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  tradeMarketName: {
+    color: "#aab3a3",
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  outcomeRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  outcomeButton: {
+    borderColor: "#293322",
+    borderRadius: 10,
+    borderWidth: 1,
+    flex: 1,
+    paddingVertical: 14,
+  },
+  outcomeButtonYesActive: {
+    backgroundColor: "#f4f7ef",
+    borderColor: "#f4f7ef",
+  },
+  outcomeButtonNoActive: {
+    backgroundColor: "transparent",
+    borderColor: "#ef4444",
+  },
+  outcomeButtonText: {
+    color: "#aab3a3",
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  outcomeButtonTextActive: {
+    color: "#11170f",
+  },
+  outcomeButtonNoTextActive: {
+    color: "#ef4444",
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  amountRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  amountLabel: {
+    color: "#f4f7ef",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  balanceHint: {
+    color: "#6f776a",
+    fontSize: 13,
+  },
+  estimateCard: {
+    backgroundColor: "#11232a",
+    borderColor: "#1c3a4a",
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+    padding: 14,
+  },
+  estimateItem: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  estimateLabel: {
+    color: "#aab3a3",
+    fontSize: 14,
+  },
+  estimateValue: {
+    color: "#f4f7ef",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  estimateProfit: {
+    color: "#4ade80",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  privacyNote: {
+    color: "#6f776a",
+    fontSize: 12,
+    fontStyle: "italic",
+    lineHeight: 18,
+  },
+  topupWarning: {
+    backgroundColor: "#1a0f0f",
+    borderColor: "#6b2a22",
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 12,
+  },
+  topupWarningText: {
+    color: "#ff9f8f",
+    fontSize: 13,
+    fontWeight: "600",
+    lineHeight: 19,
   },
   disabledButton: {
     opacity: 0.5,
@@ -648,43 +1126,107 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: "center",
   },
-  estimateRow: {
-    gap: 4,
-    marginBottom: 14,
-  },
-  estimateText: {
-    color: "#6f776a",
-    fontSize: 13,
-  },
   footerLoader: {
     alignItems: "center",
     paddingVertical: 16,
   },
-  marketAside: {
-    alignItems: "flex-end",
+  marketCard: {
+    backgroundColor: "#0c100b",
+    borderColor: "#243020",
+    borderRadius: 14,
+    borderWidth: 1,
     gap: 10,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    padding: 14,
   },
-  marketMain: {
-    flex: 1,
-    paddingRight: 12,
-  },
-  marketMeta: {
-    color: "#6f776a",
-    fontSize: 13,
-    marginTop: 8,
-  },
-  marketRow: {
-    borderBottomColor: "#243020",
-    borderBottomWidth: 1,
+  marketCardHeader: {
+    alignItems: "center",
     flexDirection: "row",
-    paddingVertical: 16,
+    gap: 12,
+  },
+  marketImage: {
+    borderRadius: 8,
+    height: 44,
+    width: 44,
+  },
+  marketImageFallback: {
+    alignItems: "center",
+    backgroundColor: "#1c2618",
+    justifyContent: "center",
+  },
+  marketImagePlaceholder: {
+    fontSize: 20,
   },
   marketTitle: {
     color: "#f4f7ef",
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
-    letterSpacing: 0,
-    lineHeight: 22,
+    lineHeight: 21,
+  },
+  marketTitleBlock: {
+    flex: 1,
+    gap: 3,
+  },
+  descriptionText: {
+    color: "#aab3a3",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  metaDot: {
+    color: "#6f776a",
+    fontSize: 12,
+  },
+  metaRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 5,
+  },
+  metaText: {
+    color: "#6f776a",
+    fontSize: 12,
+    textTransform: "capitalize",
+  },
+  noText: {
+    color: "#ef4444",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  oddsBar: {
+    borderRadius: 3,
+    flexDirection: "row",
+    height: 6,
+    overflow: "hidden",
+  },
+  oddsDivider: {
+    color: "#6f776a",
+    fontSize: 12,
+  },
+  oddsLabels: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 5,
+  },
+  oddsNo: {
+    backgroundColor: "#3a1c1c",
+  },
+  oddsRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  oddsYes: {
+    backgroundColor: "#4ade80",
+  },
+  volumeText: {
+    color: "#6f776a",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  yesText: {
+    color: "#4ade80",
+    fontSize: 12,
+    fontWeight: "700",
   },
   mutedText: {
     color: "#aab3a3",
@@ -697,28 +1239,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flex: 1,
     paddingVertical: 14,
-  },
-  outcomeButtonActive: {
-    backgroundColor: "#d4ff62",
-    borderColor: "#d4ff62",
-  },
-  outcomeButtonText: {
-    color: "#aab3a3",
-    fontWeight: "800",
-    textAlign: "center",
-  },
-  outcomeButtonTextActive: {
-    color: "#11170f",
-  },
-  outcomeRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 14,
-  },
-  priceText: {
-    color: "#d4ff62",
-    fontSize: 18,
-    fontWeight: "800",
   },
   primaryButton: {
     alignItems: "center",
@@ -775,10 +1295,11 @@ const styles = StyleSheet.create({
   },
   sortPill: {
     borderColor: "#1c2618",
-    borderRadius: 6,
+    borderRadius: 14,
     borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    minHeight: 32,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
   sortPillActive: {
     backgroundColor: "#172011",
@@ -862,16 +1383,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   watchButton: {
-    borderColor: "#293322",
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
   },
   watchButtonText: {
-    color: "#f4f7ef",
-    fontSize: 12,
-    fontWeight: "700",
+    color: "#6f776a",
+    fontSize: 18,
   },
   watchButtonTextActive: {
     color: "#d4ff62",
