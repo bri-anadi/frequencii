@@ -82,9 +82,8 @@ export const MarketBrowser: React.FC<MarketBrowserProps> = ({
       }
     };
   }, [hasMore, isLoading, onLoadMore]);
-  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(
-    null
-  );
+  const [debounceTimer, setDebounceTimer] =
+    useState<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSearchInput = useCallback(
     (value: string) => {

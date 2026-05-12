@@ -1,7 +1,19 @@
 import Database from "better-sqlite3";
 import path from "path";
 
-const DB_PATH = path.join(process.cwd(), "data", "frequencii.db");
+function resolveDbPath() {
+  if (process.env.FREQUENCII_DB_PATH) {
+    return process.env.FREQUENCII_DB_PATH;
+  }
+
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return path.join("/tmp", "frequencii.db");
+  }
+
+  return path.join(process.cwd(), "data", "frequencii.db");
+}
+
+const DB_PATH = resolveDbPath();
 
 let db: Database.Database | null = null;
 

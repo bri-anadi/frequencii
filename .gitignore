@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules
 /.pnp
 .pnp.js
 .yarn/install-state.gz
@@ -22,6 +23,7 @@
 
 # debug
 npm-debug.log*
+package-lock.json
 yarn-debug.log*
 yarn-error.log*
 
@@ -39,3 +41,9 @@ next-env.d.ts
 
 # SQLite database
 data/
+
+# Expo
+.expo/
+
+# IDE
+.vscode/

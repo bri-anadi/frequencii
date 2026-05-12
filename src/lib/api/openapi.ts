@@ -34,6 +34,7 @@ export function getOpenApiSpec() {
       { name: "User", description: "User profile management" },
       { name: "Push Notifications", description: "FCM push token registration" },
       { name: "Watchlist", description: "Market watchlist management" },
+      { name: "Seeker", description: "Solana Seeker device and Genesis Token verification" },
     ],
 
     // ========== Security Schemes ==========
@@ -265,6 +266,14 @@ export function getOpenApiSpec() {
               items: { $ref: "#/components/schemas/WatchlistItem" },
             },
           },
+        },
+        SeekerVerificationResponse: {
+          type: "object",
+          properties: {
+            hasGenesisToken: { type: "boolean" },
+            genesisTokenMint: { type: ["string", "null"] },
+          },
+          required: ["hasGenesisToken", "genesisTokenMint"],
         },
       },
     },
@@ -677,6 +686,33 @@ export function getOpenApiSpec() {
                     type: "object",
                     properties: { removed: { type: "boolean" } },
                   },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/api/v1/seeker/verify": {
+        get: {
+          tags: ["Seeker"],
+          summary: "Verify Seeker Genesis Token ownership",
+          description:
+            "Checks whether the authenticated wallet owns a valid Solana Seeker Genesis Token. Device model detection should only be used for UI hints.",
+          security: [{ bearerAuth: [] }],
+          responses: {
+            "200": {
+              description: "Seeker verification result",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/SeekerVerificationResponse" },
+                },
+              },
+            },
+            "401": {
+              description: "Missing or invalid JWT",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/Error" },
                 },
               },
             },

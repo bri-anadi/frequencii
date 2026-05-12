@@ -41,6 +41,9 @@
   ],
   "exclude": [
     "node_modules",
-    "contracts"
-  ]
+    "contracts",
+    "apps",
+    "packages"
+  ],
+  "extends": "expo/tsconfig.base"
 }
