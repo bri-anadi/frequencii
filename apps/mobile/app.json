@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Frequencii",
+    "slug": "frequencii-mobile",
+    "scheme": "frequencii",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "android": {
+      "package": "world.frequencii.mobile",
+      "useNextNotificationsApi": true
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#d4ff62"
+        }
+      ]
+    ]
+  }
+}

@@ -25,7 +25,7 @@ export const useChatListener = (
 
     // Map to track the last processed timestamp for EACH contact (Sender Public Key -> Timestamp)
     const lastTimestampMapRef = useRef<Record<string, number>>({});
-    const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const getChatRoomPda = useCallback((userKey: PublicKey) => {
         const [pda] = PublicKey.findProgramAddressSync(

@@ -248,6 +248,30 @@ cp .env.example .env
 pnpm dev
 ```
 
+### Mobile Development
+
+The React Native app lives in `apps/mobile` and uses Solana Mobile Wallet Adapter. It requires a custom Expo development build; Expo Go is not enough for the native wallet adapter modules.
+
+Run the Next.js backend:
+
+```bash
+pnpm dev
+```
+
+Run the Android client against local backend:
+
+```bash
+EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:3000 pnpm mobile:android
+```
+
+Run the Android client against production API:
+
+```bash
+EXPO_PUBLIC_API_BASE_URL=https://www.frequencii.world pnpm mobile:android
+```
+
+For a physical Android device, replace `10.0.2.2` with your machine LAN IP. Test wallet flows with an MWA-compatible wallet or the Solana Mobile Mock MWA Wallet before testing on Seeker hardware.
+
 ### Environment Variables
 
 | Variable | Description |
@@ -257,6 +281,8 @@ pnpm dev
 | `OPENROUTER_API_KEY` | OpenRouter API key for AI agent |
 | `JUPITER_API_KEY` | Jupiter Prediction API key |
 | `JWT_SECRET` | Secret for signing JWT tokens |
+| `HELIUS_MAINNET_RPC_URL` | Server-side mainnet RPC URL for Seeker Genesis Token verification |
+| `FREQUENCII_DB_PATH` | Optional SQLite path override; serverless deployments default to `/tmp/frequencii.db` |
 
 ---
 
