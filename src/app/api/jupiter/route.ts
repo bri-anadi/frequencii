@@ -267,12 +267,15 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        // Jupiter API expects isBuy (boolean), not outcome (string)
+        const isBuy = outcome.toUpperCase() === "YES";
+
         const res = await fetch(`${JUPITER_API_BASE}/orders`, {
           method: "POST",
           headers,
           body: JSON.stringify({
             marketId,
-            outcome,
+            isBuy,
             amount,
             userPubkey: walletPubkey,
           }),
